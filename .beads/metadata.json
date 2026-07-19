@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "dcash",
+  "project_id": "93f249c2-181f-4f23-85fa-a3a64a7a88bb"
+}

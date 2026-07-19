@@ -1,6 +1,33 @@
+# Env & secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Node
+node_modules/
+dist/
+
+# Databases (local dev)
+*.sqlite
+*.sqlite-journal
+
+# Tooling
+.idea/
+.run/
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+test-results/
+playwright-report/
 
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# Beads local audit log (mirrors dtasks 07b0a46)
+.beads/interactions.jsonl

@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "DCash"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "accounts": "Accounts",
+    "budgets": "Budgets",
+    "recurring": "Recurring",
+    "settings": "Settings"
+  },
+  "placeholder": {
+    "soon": "Coming soon",
+    "dashboard": "Month summary, spending charts and net worth will live here.",
+    "transactions": "The ledger with quick-add and filters will live here.",
+    "accounts": "Your accounts in EUR, USD and RUB will live here.",
+    "budgets": "Monthly per-category limits with progress will live here.",
+    "recurring": "Recurring income, expenses and transfers will live here.",
+    "settings": "Household, categories, currencies and import will live here."
+  },
+  "sidebar": {
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode"
+  },
+  "common": {
+    "genericError": "Something went wrong. Please try again."
+  }
+}

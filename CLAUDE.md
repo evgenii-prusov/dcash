@@ -1,6 +1,11 @@
-# Project Instructions for AI Agents
+# DCash — household finance tracker (dengi.dev)
 
-This file provides instructions and context for AI coding agents working on this project.
+Multi-currency (EUR/USD/RUB, base EUR) household income/expense/transfer
+tracker for multiple invite-gated households. **Read `docs/spec.md` first** —
+it is the source of truth for scope, domain model, API, FX handling and
+deployment; `docs/design-system.md` holds the visual system (ported from the
+sibling dtasks project). Beads issue prefix: `dcash`; milestone epics map to
+spec §12.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:6cd5cc61 -->
 ## Beads Issue Tracker
@@ -60,18 +65,29 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
 ## Build & Test
 
-_Add your build and test commands here_
-
-```bash
-# Example:
-# npm install
-# npm test
-```
+Makefile mirrors dtasks (arrives with the scaffolding epic): `make install`,
+`make test`, `make dev-backend` (Litestar on :8000), `make dev-frontend`
+(Vite on :5173, proxies `/api`), `make start/stop/status/logs`.
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+- Stack mirrors **dtasks** (`../dtasks` is the reference implementation):
+  Python 3.11+ / Litestar 2 / SQLAlchemy 2 async / SQLite / Alembic in
+  `backend/`; React 19 / TypeScript / Vite / TanStack Router+Query /
+  Tailwind 4 / i18next EN+RU in `frontend/`.
+- Single Docker image (frontend built into static files served by Litestar),
+  deployed to the existing Oracle VM behind the shared Caddy edge that lives
+  in its own repo (`evgenii-prusov/dinfra`, cloned to `~/dinfra` on the VM,
+  live and serving dtasks.dev since 2026-07-19), domain **dengi.dev**.
+  Read spec §10 before touching deploy.
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- Money amounts: **integers in minor units + 3-letter currency code. Never
+  floats.** Conversion via the rates table at read time only (spec §4).
+- Every domain query is scoped by the session user's `household_id`.
+- Env vars are prefixed `DCASH_`.
+- Feature branches + PRs; no direct commits to `main`.
+- When porting from dtasks, prefer copying its proven code/patterns over
+  reinventing (auth, backup script, CD workflow, Makefile, app shell).
+- Load the `dataviz` skill before writing any chart code.

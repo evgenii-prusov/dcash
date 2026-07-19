@@ -1,0 +1,345 @@
+@import 'tailwindcss';
+
+/* ─── DCash design tokens (ported from dtasks — docs/design-system.md) ─── */
+:root {
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --surface-2: #f3f0eb;
+  --border: #e5e0d8;
+  --text: #1c1917;
+  --text-2: #6b6560;
+  --text-3: #a49e98;
+  --accent: #5a7a5f;
+  --accent-2: #ebf2ec;
+  --warn: #c05a22;
+  --warn-2: #fdf0e8;
+  --high-bg: #fef3e2;
+  --high-text: #9a5a10;
+  --green: #3e8e4f;
+  --green-2: #e3f3e6;
+  /* finance semantics (income reuses the green pair) */
+  --income: #3e8e4f;
+  --income-2: #e3f3e6;
+  --expense: #b0432f;
+  --expense-2: #fbeae6;
+  --transfer: #4a6b8a;
+  --transfer-2: #e8eff5;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+[data-theme='dark'] {
+  --bg: #18150f;
+  --surface: #211d15;
+  --surface-2: #2a251c;
+  --border: #38322a;
+  --text: #ede8e0;
+  --text-2: #9a9188;
+  --text-3: #5a5248;
+  --accent: #7aaf80;
+  --accent-2: #1c2e1f;
+  --warn: #e07840;
+  --warn-2: #2a1508;
+  --high-bg: #2a1c08;
+  --high-text: #d4883a;
+  --green: #5fc474;
+  --green-2: #15301c;
+  --income: #5fc474;
+  --income-2: #15301c;
+  --expense: #d96b52;
+  --expense-2: #2a120c;
+  --transfer: #7a9fc0;
+  --transfer-2: #16222e;
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-ink-2: var(--text-2);
+  --color-ink-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-warn: var(--warn);
+  --color-warn-2: var(--warn-2);
+  --color-high-bg: var(--high-bg);
+  --color-high-text: var(--high-text);
+  --color-green: var(--green);
+  --color-green-2: var(--green-2);
+  --color-income: var(--income);
+  --color-income-2: var(--income-2);
+  --color-expense: var(--expense);
+  --color-expense-2: var(--expense-2);
+  --color-transfer: var(--transfer);
+  --color-transfer-2: var(--transfer-2);
+  --font-sans: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-serif: 'Lora', serif;
+  --shadow-sm: var(--shadow-sm);
+}
+
+/* ─── base ───────────────────────────────────────────────────── */
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+#root {
+  height: 100dvh;
+}
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ─── component classes (ported from the dtasks design system) ── */
+@layer components {
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    margin: 0 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.12s;
+    background: none;
+    border: none;
+    width: calc(100% - 16px);
+    text-align: left;
+  }
+  .nav:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .nav.on {
+    background: var(--accent-2);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .nav-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--accent);
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+  .nav-badge.warn {
+    background: var(--warn);
+  }
+
+  .s-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    padding: 10px 18px 3px;
+  }
+  .s-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 8px 0;
+  }
+
+  .ph {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .ph-title {
+    font-family: 'Lora', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+  }
+  .ph-sub {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 13px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: all 0.12s;
+  }
+  .btn-p {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-p:hover {
+    filter: brightness(1.08);
+  }
+  .btn-g {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border);
+  }
+  .btn-g:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .btn-danger:hover {
+    border-color: #c0392b;
+    color: #c0392b;
+    background: rgba(192, 57, 43, 0.08);
+  }
+  .btn-s {
+    padding: 4px 9px;
+    font-size: 11.5px;
+  }
+  .btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-head {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-head h3 {
+    font-size: 13.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .card.warn-card {
+    border-color: var(--warn);
+  }
+  .card.warn-card .card-head {
+    background: var(--warn-2);
+    border-bottom-color: var(--warn);
+  }
+  .card.warn-card .card-head h3 {
+    color: var(--warn);
+  }
+
+  .txn-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 14px;
+    transition: background 0.1s;
+    cursor: default;
+    border-bottom: 1px solid var(--border);
+  }
+  .txn-row:last-child {
+    border-bottom: none;
+  }
+  .txn-row:hover {
+    background: var(--surface-2);
+  }
+
+  .input {
+    width: 100%;
+    padding: 7px 11px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .input:focus {
+    border-color: var(--accent);
+  }
+  .textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+  .sel {
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+  }
+  .b-low {
+    background: var(--surface-2);
+    color: var(--text-3);
+  }
+  .b-high {
+    background: var(--high-bg);
+    color: var(--high-text);
+  }
+  .b-green {
+    background: var(--green-2);
+    color: var(--green);
+  }
+  .b-inc {
+    background: var(--income-2);
+    color: var(--income);
+  }
+  .b-exp {
+    background: var(--expense-2);
+    color: var(--expense);
+  }
+  .b-tfr {
+    background: var(--transfer-2);
+    color: var(--transfer);
+  }
+
+  .empty {
+    text-align: center;
+    padding: 56px 0;
+    color: var(--text-3);
+  }
+  .empty-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+
+  /* money figures: keep digits aligned in columns and tables */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}

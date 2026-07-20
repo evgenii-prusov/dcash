@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '../theme'
 import { useLanguage } from '../i18n'
+import { useLogout } from '../api/hooks'
 import { Ic, type IconName } from './Icon'
 
 function NavLink({
@@ -32,6 +33,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
   const { t } = useTranslation()
   const { theme, toggle } = useTheme()
   const { lang, toggle: toggleLang } = useLanguage()
+  const logout = useLogout()
   const close = () => onClose?.()
 
   return (
@@ -63,6 +65,10 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
 
       <div className="flex-1" />
       <hr className="s-divider" />
+      <button className="nav" onClick={() => logout.mutate()}>
+        <Ic n="logout" s={14} />
+        {t('sidebar.logout')}
+      </button>
       <button className="nav" onClick={toggle}>
         <Ic n={theme === 'dark' ? 'sun' : 'moon'} s={14} />
         {theme === 'dark' ? t('sidebar.lightMode') : t('sidebar.darkMode')}

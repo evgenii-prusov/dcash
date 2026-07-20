@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from typing import Any, NamedTuple
 
@@ -8,6 +6,7 @@ from litestar.exceptions import NotFoundException, PermissionDeniedException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .fx import check_lazy_daily_fx_fetch
 from .models import Household, HouseholdInvite, HouseholdMember, User
 from .schemas import HouseholdOut, InviteOut, MemberOut
 from .seed import generate_invite_code, invite_expires_at
@@ -24,6 +23,7 @@ async def provide_household(request: Request[User, Any, Any], session: AsyncSess
     ).scalar_one_or_none()
     if member is None:
         raise PermissionDeniedException("User has no household")
+    await check_lazy_daily_fx_fetch(session)
     return HouseholdCtx(id=member.household_id, role=member.role)
 
 

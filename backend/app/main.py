@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -17,6 +15,7 @@ from .categories import categories_router
 from .household import household_router, provide_household
 from .ledger import ledger_router
 from .models import Base
+from .rates import rates_router
 from .transactions import transactions_router
 from .transfers import transfers_router
 
@@ -60,6 +59,7 @@ route_handlers: list = [
     transactions_router,
     transfers_router,
     ledger_router,
+    rates_router,
 ]
 if FRONTEND_DIST.is_dir():
     route_handlers.append(create_static_files_router(path="/", directories=[FRONTEND_DIST], html_mode=True))

@@ -106,4 +106,16 @@ export const api = {
     if (params.q) qs.set('q', params.q)
     return request<LedgerEntry[]>(`/api/ledger/?${qs}`)
   },
+
+  // E4: Rates
+  getRates: (date?: string) => {
+    const qs = date ? `?date=${date}` : ''
+    return request<import('./types').Rate[]>(`/api/rates/${qs}`)
+  },
+  overrideRate: (date: string, currency: string, rate_to_eur: string) =>
+    request<import('./types').Rate>(`/api/rates/${date}/${currency}`, {
+      method: 'PUT',
+      body: JSON.stringify({ rate_to_eur }),
+    }),
+  refreshRates: () => request<import('./types').Rate[]>('/api/rates/refresh', { method: 'POST' }),
 }

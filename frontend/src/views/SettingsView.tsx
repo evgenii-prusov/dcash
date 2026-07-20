@@ -9,6 +9,9 @@ import {
   useCreateInvite,
   useRevokeInvite,
   useRemoveMember,
+  useRates,
+  useOverrideRate,
+  useRefreshRates,
 } from '../api/hooks'
 import { api } from '../api/client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -210,6 +213,134 @@ function HouseholdSection() {
 }
 
 // ---------------------------------------------------------------------------
+// Rates section
+// ---------------------------------------------------------------------------
+
+function RatesSection() {
+  const { t } = useTranslation()
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const { data: rates, isLoading } = useRates(selectedDate)
+  const refreshRates = useRefreshRates()
+  const overrideRate = useOverrideRate()
+
+  const [editingCurrency, setEditingCurrency] = useState<string | null>(null)
+  const [overrideVal, setOverrideVal] = useState('')
+
+  async function handleSaveOverride(currency: string) {
+    if (!overrideVal.trim()) return
+    await overrideRate.mutateAsync({
+      date: selectedDate,
+      currency,
+      rate_to_eur: overrideVal.trim(),
+    })
+    setEditingCurrency(null)
+    setOverrideVal('')
+  }
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h3>
+          <Ic n="refresh" s={13} />
+          {t('rates.title')}
+        </h3>
+        <button
+          className="btn btn-g btn-s"
+          onClick={() => refreshRates.mutate()}
+          disabled={refreshRates.isPending}
+        >
+          {refreshRates.isPending ? t('common.loading') : t('rates.refresh')}
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between border-b border-line px-4 py-2">
+        <span className="text-[12px] font-medium text-text-3">Date</span>
+        <input
+          type="date"
+          className="input text-[12px] py-1 px-2"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+        />
+      </div>
+
+      {isLoading ? (
+        <p className="px-4 py-3 text-[13px] text-text-3">{t('common.loading')}</p>
+      ) : (
+        <div>
+          {(rates ?? []).map((r) => {
+            const isEditing = editingCurrency === r.currency
+            const rateNum = Number(r.rate_to_eur)
+            const inverse = rateNum > 0 && r.currency !== 'EUR' ? (1 / rateNum).toFixed(4) : '-'
+
+            return (
+              <div key={r.currency} className="border-b border-line last:border-0 px-4 py-2 text-[13px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{r.currency}</span>
+                    <span className={`badge ${r.source === 'manual' ? 'b-inc' : 'b-low'}`}>
+                      {t(`rates.${r.source}` as any)}
+                    </span>
+                  </div>
+
+                  {r.currency !== 'EUR' && !isEditing && (
+                    <div className="flex items-center gap-3">
+                      <span className="tnum text-[12px] text-text-2">
+                        1 {r.currency} = {r.rate_to_eur} € (~{inverse} {r.currency}/€)
+                      </span>
+                      <button
+                        className="btn btn-g btn-s"
+                        onClick={() => {
+                          setEditingCurrency(r.currency)
+                          setOverrideVal(r.rate_to_eur)
+                        }}
+                      >
+                        {t('rates.override')}
+                      </button>
+                    </div>
+                  )}
+
+                  {r.currency === 'EUR' && (
+                    <span className="tnum text-[12px] text-text-3">Base (1.0)</span>
+                  )}
+                </div>
+
+                {isEditing && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      handleSaveOverride(r.currency)
+                    }}
+                    className="mt-2 flex items-center gap-2"
+                  >
+                    <input
+                      className="input text-[12px] flex-1"
+                      placeholder="0.9215"
+                      value={overrideVal}
+                      onChange={(e) => setOverrideVal(e.target.value)}
+                      autoFocus
+                    />
+                    <button type="submit" className="btn btn-p btn-s">
+                      {t('common.save')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-g btn-s"
+                      onClick={() => setEditingCurrency(null)}
+                    >
+                      <Ic n="x" s={12} />
+                    </button>
+                  </form>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main settings view
 // ---------------------------------------------------------------------------
 
@@ -225,6 +356,10 @@ export function SettingsView() {
       </div>
 
       <HouseholdSection />
+
+      <div className="mt-6">
+        <RatesSection />
+      </div>
 
       <div className="mt-6">
         <CategoriesSection />

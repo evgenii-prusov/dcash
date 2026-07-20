@@ -15,6 +15,7 @@ export type IconName =
   | 'search'
   | 'trash'
   | 'x'
+  | 'logout'
 
 const paths = (c: string): Record<IconName, ReactNode> => ({
   dashboard: (
@@ -106,6 +107,16 @@ const paths = (c: string): Record<IconName, ReactNode> => ({
   ),
   x: (
     <path d="M4 4l8 8M12 4l-8 8" stroke={c} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+  ),
+  logout: (
+    <path
+      d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3M10 11l3-3-3-3M6 8h7"
+      stroke={c}
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
   ),
 })
 

@@ -1,15 +1,19 @@
 import { useState } from 'react'
-import { QueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
   Outlet,
+  redirect,
   type RouterHistory,
 } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Sidebar } from './components/Sidebar'
 import { Placeholder } from './components/Placeholder'
+import { WelcomeView } from './views/WelcomeView'
+import { currentUserQueryOptions } from './api/hooks'
+import { createQueryClient } from './queryClient'
 import type { IconName } from './components/Icon'
 
 function Layout() {
@@ -48,7 +52,10 @@ function Layout() {
 // Placeholder pages: each is replaced by its real view when the matching
 // epic lands (dashboard/E5, ledger/E3, accounts/E3, budgets/E6, recurring/E7,
 // settings/E2+).
-function makePlaceholderView(nameKey: 'dashboard' | 'transactions' | 'accounts' | 'budgets' | 'recurring' | 'settings', icon: IconName) {
+function makePlaceholderView(
+  nameKey: 'dashboard' | 'transactions' | 'accounts' | 'budgets' | 'recurring' | 'settings',
+  icon: IconName,
+) {
   return function PlaceholderView() {
     const { t } = useTranslation()
     return (
@@ -66,58 +73,99 @@ interface RouterContext {
   queryClient: QueryClient
 }
 
-const rootRoute = createRootRouteWithContext<RouterContext>()({ component: Layout })
+const rootRoute = createRootRouteWithContext<RouterContext>()({ component: Outlet })
+
+interface WelcomeSearch {
+  oauth_error?: string
+}
+
+const welcomeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/welcome',
+  component: WelcomeView,
+  validateSearch: (search: Record<string, unknown>): WelcomeSearch => ({
+    oauth_error: typeof search.oauth_error === 'string' ? search.oauth_error : undefined,
+  }),
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(currentUserQueryOptions).catch(() => null)
+    if (user) throw redirect({ to: '/' })
+  },
+})
+
+// Pathless layout route: every child requires a session.
+const authedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'authed',
+  component: Layout,
+  beforeLoad: async ({ context }) => {
+    try {
+      await context.queryClient.ensureQueryData(currentUserQueryOptions)
+    } catch {
+      throw redirect({ to: '/welcome' })
+    }
+  },
+})
 
 const dashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authedRoute,
   path: '/',
   component: makePlaceholderView('dashboard', 'dashboard'),
 })
 
 const transactionsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authedRoute,
   path: '/transactions',
   component: makePlaceholderView('transactions', 'transactions'),
 })
 
 const accountsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authedRoute,
   path: '/accounts',
   component: makePlaceholderView('accounts', 'accounts'),
 })
 
 const budgetsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authedRoute,
   path: '/budgets',
   component: makePlaceholderView('budgets', 'budgets'),
 })
 
 const recurringRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authedRoute,
   path: '/recurring',
   component: makePlaceholderView('recurring', 'recurring'),
 })
 
 const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authedRoute,
   path: '/settings',
   component: makePlaceholderView('settings', 'settings'),
 })
 
 const routeTree = rootRoute.addChildren([
-  dashboardRoute,
-  transactionsRoute,
-  accountsRoute,
-  budgetsRoute,
-  recurringRoute,
-  settingsRoute,
+  welcomeRoute,
+  authedRoute.addChildren([
+    dashboardRoute,
+    transactionsRoute,
+    accountsRoute,
+    budgetsRoute,
+    recurringRoute,
+    settingsRoute,
+  ]),
 ])
 
 export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {
   return createRouter({ routeTree, context: { queryClient }, history })
 }
 
-export const queryClient = new QueryClient()
+export const queryClient = createQueryClient({
+  currentPath: () => router.state.location.pathname,
+  redirectToWelcome: () => {
+    // Drop any cached session so the /welcome guard doesn't bounce back to '/'.
+    queryClient.removeQueries({ queryKey: ['auth'] })
+    router.navigate({ to: '/welcome' })
+  },
+})
 
 export const router = createAppRouter(queryClient)
 

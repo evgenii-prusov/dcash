@@ -21,7 +21,44 @@
   },
   "sidebar": {
     "lightMode": "Светлая тема",
-    "darkMode": "Тёмная тема"
+    "darkMode": "Тёмная тема",
+    "logout": "Выйти"
+  },
+  "welcome": {
+    "tagline": "Учёт доходов, расходов и переводов домохозяйства в разных валютах.",
+    "signupTitle": "Создать аккаунт",
+    "joinTitle": "Войти в домохозяйство",
+    "loginTitle": "С возвращением",
+    "email": "Эл. почта",
+    "password": "Пароль",
+    "inviteCode": "Код приглашения",
+    "joinCode": "Код вступления",
+    "createAccount": "Создать аккаунт",
+    "creatingAccount": "Создаём…",
+    "joinHousehold": "Войти в домохозяйство",
+    "joiningHousehold": "Входим…",
+    "logIn": "Войти",
+    "loggingIn": "Входим…",
+    "haveAccount": "Уже есть аккаунт?",
+    "needAccount": "Нет аккаунта?",
+    "haveJoinCode": "Есть код вступления?",
+    "signUp": "Зарегистрироваться",
+    "or": "или",
+    "continueWithGoogle": "Продолжить через Google",
+    "continueWithGithub": "Продолжить через GitHub",
+    "inviteRequiredForOauth": "Введите код приглашения выше перед входом через OAuth.",
+    "errors": {
+      "invalidCredentials": "Неверная почта или пароль.",
+      "invalidInvite": "Неверный или истёкший код приглашения.",
+      "emailExists": "Аккаунт с такой почтой уже существует.",
+      "oauth": {
+        "invite_required": "Для создания аккаунта нужен код приглашения.",
+        "invalid_invite": "Неверный или истёкший код приглашения.",
+        "no_verified_email": "В OAuth-аккаунте нет подтверждённой почты.",
+        "state_mismatch": "Ошибка OAuth: несовпадение state. Попробуйте ещё раз.",
+        "provider_error": "OAuth-провайдер вернул ошибку. Попробуйте ещё раз."
+      }
+    }
   },
   "common": {
     "genericError": "Что-то пошло не так. Попробуйте ещё раз."

@@ -21,7 +21,44 @@
   },
   "sidebar": {
     "lightMode": "Light mode",
-    "darkMode": "Dark mode"
+    "darkMode": "Dark mode",
+    "logout": "Log out"
+  },
+  "welcome": {
+    "tagline": "Track household income, expenses and transfers across currencies.",
+    "signupTitle": "Create an account",
+    "joinTitle": "Join a household",
+    "loginTitle": "Welcome back",
+    "email": "Email",
+    "password": "Password",
+    "inviteCode": "Invite code",
+    "joinCode": "Join code",
+    "createAccount": "Create account",
+    "creatingAccount": "Creating…",
+    "joinHousehold": "Join household",
+    "joiningHousehold": "Joining…",
+    "logIn": "Log in",
+    "loggingIn": "Logging in…",
+    "haveAccount": "Already have an account?",
+    "needAccount": "Need an account?",
+    "haveJoinCode": "Have a join code?",
+    "signUp": "Sign up",
+    "or": "or",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithGithub": "Continue with GitHub",
+    "inviteRequiredForOauth": "Enter an invite code above before continuing with OAuth.",
+    "errors": {
+      "invalidCredentials": "Invalid email or password.",
+      "invalidInvite": "Invalid or expired invite code.",
+      "emailExists": "An account with this email already exists.",
+      "oauth": {
+        "invite_required": "An invite code is required to create a new account.",
+        "invalid_invite": "Invalid or expired invite code.",
+        "no_verified_email": "Your OAuth account has no verified email address.",
+        "state_mismatch": "OAuth state mismatch. Please try again.",
+        "provider_error": "OAuth provider returned an error. Please try again."
+      }
+    }
   },
   "common": {
     "genericError": "Something went wrong. Please try again."

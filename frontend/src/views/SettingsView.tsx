@@ -241,7 +241,7 @@ function RatesSection() {
     <div className="card">
       <div className="card-head">
         <h3>
-          <Ic n="refresh" s={13} />
+          <Ic n="recurring" s={13} />
           {t('rates.title')}
         </h3>
         <button

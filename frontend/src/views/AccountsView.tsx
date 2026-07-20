@@ -4,7 +4,7 @@ import { Ic } from '../components/Icon'
 import { useAccounts, useCreateAccount, usePatchAccount } from '../api/hooks'
 import type { Account, AccountCreate, AccountType } from '../api/types'
 
-const ACCOUNT_TYPES: AccountType[] = ['checking', 'savings', 'cash', 'card', 'deposit', 'other']
+const ACCOUNT_TYPES: AccountType[] = ['savings', 'cash', 'card']
 const CURRENCIES = ['EUR', 'USD', 'RUB']
 
 function formatMoney(minor: number, currency: string, locale: string): string {
@@ -19,12 +19,9 @@ function formatMoney(minor: number, currency: string, locale: string): string {
 
 function AccountTypeIcon({ type }: { type: AccountType }) {
   const icons: Record<AccountType, string> = {
-    checking: '🏦',
     savings: '🐷',
     cash: '💵',
     card: '💳',
-    deposit: '📈',
-    other: '🪙',
   }
   return <span className="text-base">{icons[type]}</span>
 }
@@ -39,7 +36,7 @@ interface AccountFormProps {
 function AccountForm({ initial, onSave, onCancel, saving }: AccountFormProps) {
   const { t } = useTranslation()
   const [name, setName] = useState(initial?.name ?? '')
-  const [type, setType] = useState<AccountType>(initial?.type ?? 'checking')
+  const [type, setType] = useState<AccountType>(initial?.type ?? 'savings')
   const [currency, setCurrency] = useState(initial?.currency ?? 'EUR')
   const [opening, setOpening] = useState(
     initial?.opening_balance_minor != null ? (initial.opening_balance_minor / 100).toFixed(2) : '0.00'

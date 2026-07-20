@@ -50,7 +50,7 @@ class InviteCreate(msgspec.Struct):
 # E3: Accounts
 # ---------------------------------------------------------------------------
 
-ACCOUNT_TYPES = frozenset({"checking", "savings", "cash", "card", "deposit", "other"})
+ACCOUNT_TYPES = frozenset({"savings", "cash", "card"})
 
 
 class AccountCreate(msgspec.Struct):

@@ -12,6 +12,9 @@ import { useTranslation } from 'react-i18next'
 import { Sidebar } from './components/Sidebar'
 import { Placeholder } from './components/Placeholder'
 import { WelcomeView } from './views/WelcomeView'
+import { AccountsView } from './views/AccountsView'
+import { TransactionsView } from './views/TransactionsView'
+import { SettingsView } from './views/SettingsView'
 import { currentUserQueryOptions } from './api/hooks'
 import { createQueryClient } from './queryClient'
 import type { IconName } from './components/Icon'
@@ -115,13 +118,13 @@ const dashboardRoute = createRoute({
 const transactionsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/transactions',
-  component: makePlaceholderView('transactions', 'transactions'),
+  component: TransactionsView,
 })
 
 const accountsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/accounts',
-  component: makePlaceholderView('accounts', 'accounts'),
+  component: AccountsView,
 })
 
 const budgetsRoute = createRoute({
@@ -139,7 +142,7 @@ const recurringRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/settings',
-  component: makePlaceholderView('settings', 'settings'),
+  component: SettingsView,
 })
 
 const routeTree = rootRoute.addChildren([

@@ -1,10 +1,22 @@
 import type {
+  Account,
+  AccountCreate,
+  AccountPatch,
   AuthProviders,
+  CategoryGroup,
+  Category,
   Household,
   HouseholdInvite,
   HouseholdMember,
+  LedgerEntry,
   LoginPayload,
   SignupPayload,
+  Transaction,
+  TransactionCreate,
+  TransactionPatch,
+  Transfer,
+  TransferCreate,
+  TransferPatch,
   User,
 } from './types'
 
@@ -53,4 +65,45 @@ export const api = {
     request<HouseholdInvite>('/api/household/invites', { method: 'POST', body: '{}' }),
   revokeInvite: (id: number) =>
     request<void>(`/api/household/invites/${id}`, { method: 'DELETE' }),
+
+  // E3: Accounts
+  listAccounts: () => request<Account[]>('/api/accounts/'),
+  createAccount: (data: AccountCreate) =>
+    request<Account>('/api/accounts/', { method: 'POST', body: JSON.stringify(data) }),
+  patchAccount: (id: number, data: AccountPatch) =>
+    request<Account>(`/api/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // E3: Categories
+  listCategories: () => request<CategoryGroup[]>('/api/categories/'),
+  createGroup: (data: { name: string; kind: 'expense' | 'income'; sort_order?: number }) =>
+    request<CategoryGroup>('/api/categories/groups', { method: 'POST', body: JSON.stringify(data) }),
+  createCategory: (data: { group_id: number; name: string; sort_order?: number }) =>
+    request<Category>('/api/categories/', { method: 'POST', body: JSON.stringify(data) }),
+  patchCategory: (id: number, data: { name?: string; archived?: boolean; sort_order?: number }) =>
+    request<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // E3: Transactions
+  createTransaction: (data: TransactionCreate) =>
+    request<Transaction>('/api/transactions/', { method: 'POST', body: JSON.stringify(data) }),
+  patchTransaction: (id: number, data: TransactionPatch) =>
+    request<Transaction>(`/api/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteTransaction: (id: number) =>
+    request<void>(`/api/transactions/${id}`, { method: 'DELETE' }),
+
+  // E3: Transfers
+  createTransfer: (data: TransferCreate) =>
+    request<Transfer>('/api/transfers/', { method: 'POST', body: JSON.stringify(data) }),
+  patchTransfer: (id: number, data: TransferPatch) =>
+    request<Transfer>(`/api/transfers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteTransfer: (id: number) =>
+    request<void>(`/api/transfers/${id}`, { method: 'DELETE' }),
+
+  // E3: Ledger
+  getLedger: (params: { month: string; account_id?: number; category_id?: number; q?: string }) => {
+    const qs = new URLSearchParams({ month: params.month })
+    if (params.account_id != null) qs.set('account_id', String(params.account_id))
+    if (params.category_id != null) qs.set('category_id', String(params.category_id))
+    if (params.q) qs.set('q', params.q)
+    return request<LedgerEntry[]>(`/api/ledger/?${qs}`)
+  },
 }

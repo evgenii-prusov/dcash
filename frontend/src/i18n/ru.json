@@ -61,6 +61,54 @@
     }
   },
   "common": {
-    "genericError": "Что-то пошло не так. Попробуйте ещё раз."
+    "genericError": "Что-то пошло не так. Попробуйте ещё раз.",
+    "loading": "Загрузка…",
+    "saving": "Сохранение…",
+    "save": "Сохранить",
+    "cancel": "Отмена"
+  },
+  "accounts": {
+    "addAccount": "Добавить счёт",
+    "newAccount": "Новый счёт",
+    "edit": "Редактировать счёт",
+    "archive": "Архивировать",
+    "unarchive": "Из архива",
+    "archived": "Архивные",
+    "empty": "Нет счетов. Добавьте первый.",
+    "form": {
+      "name": "Название",
+      "type": "Тип",
+      "currency": "Валюта",
+      "openingBalance": "Начальный баланс",
+      "nameRequired": "Введите название.",
+      "invalidAmount": "Некорректная сумма."
+    }
+  },
+  "ledger": {
+    "addTransaction": "Добавить операцию",
+    "addTransfer": "Перевод",
+    "income": "доход",
+    "expense": "расход",
+    "transfer": "перевод",
+    "amount": "Сумма",
+    "payee": "Получатель",
+    "search": "Поиск…",
+    "allAccounts": "Все счета",
+    "allCategories": "Все категории",
+    "empty": "Нет операций за этот период.",
+    "invalidAmount": "Введите положительную сумму.",
+    "selectAccountCategory": "Выберите счёт и категорию.",
+    "sameAccount": "Счета отправителя и получателя должны различаться.",
+    "noAccountsYet": "Сначала создайте счёт."
+  },
+  "settings": {
+    "household": "Домохозяйство",
+    "categories": "Категории",
+    "addGroup": "Добавить группу",
+    "groupName": "Название группы",
+    "categoryName": "Название категории",
+    "createInvite": "Создать приглашение",
+    "activeInvites": "Активные приглашения",
+    "members": "Участники"
   }
 }

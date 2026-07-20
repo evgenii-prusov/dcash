@@ -16,6 +16,10 @@ export type IconName =
   | 'trash'
   | 'x'
   | 'logout'
+  | 'edit'
+  | 'transfer'
+  | 'chevron-left'
+  | 'chevron-right'
 
 const paths = (c: string): Record<IconName, ReactNode> => ({
   dashboard: (
@@ -117,6 +121,32 @@ const paths = (c: string): Record<IconName, ReactNode> => ({
       strokeLinejoin="round"
       fill="none"
     />
+  ),
+  edit: (
+    <path
+      d="M11 2.5l2.5 2.5-7 7H4V9.5l7-7z"
+      stroke={c}
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  ),
+  transfer: (
+    <path
+      d="M3 5h8m0 0L8.8 2.8M11 5 8.8 7.2M13 11H5m0 0 2.2-2.2M5 11l2.2 2.2"
+      stroke={c}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  ),
+  'chevron-left': (
+    <path d="M10 3L6 8l4 5" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  ),
+  'chevron-right': (
+    <path d="M6 3l4 5-4 5" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   ),
 })
 

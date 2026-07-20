@@ -11,9 +11,14 @@ from litestar.exceptions import NotFoundException
 from litestar.static_files import create_static_files_router
 
 from . import db
+from .accounts import accounts_router
 from .auth import auth_router, session_auth, session_store
+from .categories import categories_router
 from .household import household_router, provide_household
+from .ledger import ledger_router
 from .models import Base
+from .transactions import transactions_router
+from .transfers import transfers_router
 
 
 @asynccontextmanager
@@ -46,7 +51,16 @@ def not_found_handler(request: Request, exc: NotFoundException) -> Response:
     )
 
 
-route_handlers: list = [health, auth_router, household_router]
+route_handlers: list = [
+    health,
+    auth_router,
+    household_router,
+    accounts_router,
+    categories_router,
+    transactions_router,
+    transfers_router,
+    ledger_router,
+]
 if FRONTEND_DIST.is_dir():
     route_handlers.append(create_static_files_router(path="/", directories=[FRONTEND_DIST], html_mode=True))
 

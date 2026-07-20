@@ -36,16 +36,16 @@ async def get_ledger(
     first, last = _parse_month(month)
 
     # --- transactions ---
-    tx_query = select(Transaction, Account, Category, CategoryGroup).join(
-        Account, Account.id == Transaction.account_id
-    ).join(
-        Category, Category.id == Transaction.category_id
-    ).join(
-        CategoryGroup, CategoryGroup.id == Category.group_id
-    ).where(
-        Transaction.household_id == hh.id,
-        Transaction.date >= first,
-        Transaction.date <= last,
+    tx_query = (
+        select(Transaction, Account, Category, CategoryGroup)
+        .join(Account, Account.id == Transaction.account_id)
+        .join(Category, Category.id == Transaction.category_id)
+        .join(CategoryGroup, CategoryGroup.id == Category.group_id)
+        .where(
+            Transaction.household_id == hh.id,
+            Transaction.date >= first,
+            Transaction.date <= last,
+        )
     )
     if account_id is not None:
         tx_query = tx_query.where(Transaction.account_id == account_id)
@@ -53,20 +53,15 @@ async def get_ledger(
         tx_query = tx_query.where(Transaction.category_id == category_id)
     if q:
         pattern = f"%{q}%"
-        tx_query = tx_query.where(
-            Transaction.payee.ilike(pattern) | Transaction.note.ilike(pattern)
-        )
+        tx_query = tx_query.where(Transaction.payee.ilike(pattern) | Transaction.note.ilike(pattern))
 
     tx_rows = (await session.execute(tx_query)).all()
 
     # --- transfers ---
-    tr_query = (
-        select(Transfer)
-        .where(
-            Transfer.household_id == hh.id,
-            Transfer.date >= first,
-            Transfer.date <= last,
-        )
+    tr_query = select(Transfer).where(
+        Transfer.household_id == hh.id,
+        Transfer.date >= first,
+        Transfer.date <= last,
     )
     if account_id is not None:
         tr_query = tr_query.where(
@@ -86,8 +81,8 @@ async def get_ledger(
     account_map: dict[int, Account] = {}
     if tr_account_ids:
         acct_rows = (
-            await session.execute(select(Account).where(Account.id.in_(tr_account_ids)))
-        ).scalars().all()
+            (await session.execute(select(Account).where(Account.id.in_(tr_account_ids)))).scalars().all()
+        )
         account_map = {a.id: a for a in acct_rows}
 
     entries: list[LedgerTransaction | LedgerTransfer] = []

@@ -124,9 +124,7 @@ async def test_patch_account_archive(client: AsyncTestClient) -> None:
 
 
 async def test_invalid_account_type_rejected(client: AsyncTestClient) -> None:
-    resp = await client.post(
-        "/api/accounts", json={"name": "X", "type": "bitcoin", "currency": "EUR"}
-    )
+    resp = await client.post("/api/accounts", json={"name": "X", "type": "bitcoin", "currency": "EUR"})
     assert resp.status_code == 400
 
 

@@ -81,9 +81,7 @@ async def list_accounts(hh: HouseholdCtx, session: AsyncSession) -> list[Account
     accounts = (
         (
             await session.execute(
-                select(Account)
-                .where(Account.household_id == hh.id)
-                .order_by(Account.sort_order, Account.id)
+                select(Account).where(Account.household_id == hh.id).order_by(Account.sort_order, Account.id)
             )
         )
         .scalars()
@@ -118,9 +116,7 @@ async def patch_account(
     account_id: int, data: AccountPatch, hh: HouseholdCtx, session: AsyncSession
 ) -> AccountOut:
     account = (
-        await session.execute(
-            select(Account).where(Account.id == account_id, Account.household_id == hh.id)
-        )
+        await session.execute(select(Account).where(Account.id == account_id, Account.household_id == hh.id))
     ).scalar_one_or_none()
     if account is None:
         raise NotFoundException()

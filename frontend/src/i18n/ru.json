@@ -122,5 +122,15 @@
     "manual": "вручную",
     "override": "Изменить",
     "overrideTitle": "Установить курс вручную"
+  },
+  "dashboard": {
+    "income": "Доходы",
+    "expenses": "Расходы",
+    "net": "Итог",
+    "spendingByCategory": "Расходы по категориям",
+    "netWorthTrend": "Динамика капитала",
+    "recentEntries": "Последние операции",
+    "noSpending": "Нет расходов за этот месяц.",
+    "noNetWorth": "Данные о капитале отсутствуют."
   }
 }

@@ -119,7 +119,10 @@ export function useCreateAccount() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: AccountCreate) => api.createAccount(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
+    },
   })
 }
 
@@ -127,7 +130,10 @@ export function usePatchAccount() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: AccountPatch }) => api.patchAccount(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
+    },
   })
 }
 
@@ -150,6 +156,7 @@ export function useCreateTransaction() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ledger'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
     },
   })
 }
@@ -162,6 +169,7 @@ export function usePatchTransaction() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ledger'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
     },
   })
 }
@@ -173,6 +181,7 @@ export function useDeleteTransaction() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ledger'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
     },
   })
 }
@@ -188,6 +197,7 @@ export function useCreateTransfer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ledger'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
     },
   })
 }
@@ -200,6 +210,7 @@ export function usePatchTransfer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ledger'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
     },
   })
 }
@@ -211,6 +222,7 @@ export function useDeleteTransfer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ledger'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
     },
   })
 }
@@ -259,6 +271,34 @@ export function useRefreshRates() {
       qc.invalidateQueries({ queryKey: ['rates'] })
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['ledger'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
     },
+  })
+}
+
+// ---------------------------------------------------------------------------
+// E5: Reports
+// ---------------------------------------------------------------------------
+
+export function useReportSummary(month: string) {
+  return useQuery({
+    queryKey: ['reports', 'summary', month],
+    queryFn: () => api.getReportSummary(month),
+    enabled: !!month,
+  })
+}
+
+export function useReportCategories(month: string, kind: 'expense' | 'income' = 'expense') {
+  return useQuery({
+    queryKey: ['reports', 'categories', month, kind],
+    queryFn: () => api.getReportCategories(month, kind),
+    enabled: !!month,
+  })
+}
+
+export function useReportNetWorth(from?: string, to?: string) {
+  return useQuery({
+    queryKey: ['reports', 'net-worth', from, to],
+    queryFn: () => api.getReportNetWorth(from, to),
   })
 }

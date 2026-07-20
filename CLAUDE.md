@@ -88,9 +88,12 @@ Makefile mirrors dtasks (arrives with the scaffolding epic): `make install`,
 - Every domain query is scoped by the session user's `household_id`.
 - Env vars are prefixed `DCASH_`.
 - Feature branches + PRs; no direct commits to `main`.
+- **Merge strategy: Rebase and Merge** (GitHub PR setting). Never squash-merge
+  or create a merge commit. Rebase preserves individual commit SHAs on main,
+  so sibling branches can rebase cleanly without "add/add" conflicts.
 - **Always cut new branches from `main`**: `git checkout -b <name> origin/main`.
-  Never branch off a sibling feature branch — squash-merge creates a diverged
-  history that conflicts when you open a PR against main.
+  Never branch off a sibling feature branch — if the sibling is merged, the
+  new branch carries commits that are already on main under different SHAs.
 - **CI quality gates** (both must pass before merge):
   1. `cd backend && uv run ruff check .` — covers `app/`, `tests/`, `scripts/`
   2. `cd backend && uv run ruff format --check .`

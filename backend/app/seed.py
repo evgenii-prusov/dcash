@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .exceptions import OAuthError
-from .models import Household, HouseholdInvite, HouseholdMember, OAuthAccount, User
+from .models import Category, CategoryGroup, Household, HouseholdInvite, HouseholdMember, OAuthAccount, User
 
 
 async def provision_user(
@@ -58,7 +58,7 @@ async def provision_user(
     session.add(household)
     await session.flush()
     session.add(HouseholdMember(user_id=user.id, household_id=household.id, role="owner"))
-    # E3: seed default category tree here
+    await seed_new_household(session, household.id)
     return user, household.id, "owner"
 
 
@@ -125,6 +125,42 @@ def invite_expires_at() -> datetime:
     return datetime.now(UTC) + timedelta(days=7)
 
 
+_DEFAULT_CATEGORIES: list[tuple[str, str, list[str]]] = [
+    # (group_name, kind, [subcategory_names])
+    ("Housing", "expense", ["Rent", "Utilities"]),
+    ("Food", "expense", ["Groceries", "Restaurants"]),
+    ("Transport", "expense", ["Public transport", "Car", "Taxi"]),
+    ("Health", "expense", ["Pharmacy", "Doctors", "Sport"]),
+    ("Personal", "expense", ["Clothes", "Subscriptions", "Gifts"]),
+    ("Leisure", "expense", ["Travel", "Entertainment"]),
+    ("Other", "expense", []),
+    ("Salary", "income", []),
+    ("Freelance", "income", []),
+    ("Interest", "income", []),
+    ("Other income", "income", []),
+]
+
+
 async def seed_new_household(session: AsyncSession, household_id: int) -> None:
-    # E3: seed default two-level category tree for a new household
-    pass
+    now = datetime.now(UTC)
+    for sort_g, (group_name, kind, subcats) in enumerate(_DEFAULT_CATEGORIES):
+        group = CategoryGroup(
+            household_id=household_id,
+            name=group_name,
+            kind=kind,
+            sort_order=sort_g,
+            created_at=now,
+        )
+        session.add(group)
+        await session.flush()
+        for sort_c, cat_name in enumerate(subcats):
+            session.add(
+                Category(
+                    household_id=household_id,
+                    group_id=group.id,
+                    name=cat_name,
+                    archived=False,
+                    sort_order=sort_c,
+                    created_at=now,
+                )
+            )

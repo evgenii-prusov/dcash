@@ -61,6 +61,54 @@
     }
   },
   "common": {
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "accounts": {
+    "addAccount": "Add account",
+    "newAccount": "New account",
+    "edit": "Edit account",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archived": "Archived",
+    "empty": "No accounts yet. Add one to get started.",
+    "form": {
+      "name": "Name",
+      "type": "Type",
+      "currency": "Currency",
+      "openingBalance": "Opening balance",
+      "nameRequired": "Name is required.",
+      "invalidAmount": "Invalid amount."
+    }
+  },
+  "ledger": {
+    "addTransaction": "Add transaction",
+    "addTransfer": "Transfer",
+    "income": "income",
+    "expense": "expense",
+    "transfer": "transfer",
+    "amount": "Amount",
+    "payee": "Payee",
+    "search": "Search…",
+    "allAccounts": "All accounts",
+    "allCategories": "All categories",
+    "empty": "No entries for this period.",
+    "invalidAmount": "Enter a positive amount.",
+    "selectAccountCategory": "Select account and category.",
+    "sameAccount": "From and to accounts must differ.",
+    "noAccountsYet": "Create an account first."
+  },
+  "settings": {
+    "household": "Household",
+    "categories": "Categories",
+    "addGroup": "Add group",
+    "groupName": "Group name",
+    "categoryName": "Category name",
+    "createInvite": "Create invite",
+    "activeInvites": "Active invites",
+    "members": "Members"
   }
 }

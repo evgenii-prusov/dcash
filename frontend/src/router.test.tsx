@@ -18,6 +18,10 @@ function mockApi(user: typeof MOCK_USER | null) {
       if (url === '/api/auth/providers') {
         return new Response(JSON.stringify({ google: false, github: false }), { status: 200 })
       }
+      // E3 data endpoints: return empty arrays so views render without errors
+      if (url === '/api/accounts/') return new Response('[]', { status: 200 })
+      if (url === '/api/categories/') return new Response('[]', { status: 200 })
+      if (url.startsWith('/api/ledger/')) return new Response('[]', { status: 200 })
       return new Response('Not found', { status: 404 })
     }),
   )
@@ -73,9 +77,10 @@ describe('existing app shell tests (authenticated)', () => {
     expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(2)
   })
 
-  test('routes render their placeholder views', async () => {
+  test('accounts route renders the accounts view', async () => {
     await renderAt('/accounts', MOCK_USER)
-    expect(await screen.findByText(/Your accounts in EUR, USD and RUB/)).toBeInTheDocument()
+    expect((await screen.findAllByText('Accounts')).length).toBeGreaterThanOrEqual(1)
+    expect(await screen.findByText(/No accounts yet/)).toBeInTheDocument()
   })
 
   test('language toggle switches the UI to Russian and back', async () => {

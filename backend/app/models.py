@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -63,3 +63,85 @@ class HouseholdInvite(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), default=None)
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
+# ---------------------------------------------------------------------------
+# E3: Core Ledger
+# ---------------------------------------------------------------------------
+
+
+class Currency(Base):
+    __tablename__ = "currencies"
+
+    code: Mapped[str] = mapped_column(String(3), primary_key=True)  # EUR, USD, RUB
+    decimals: Mapped[int]  # 2 for all current currencies
+    symbol: Mapped[str] = mapped_column(String(10))  # €, $, ₽
+
+
+class Account(Base):
+    __tablename__ = "accounts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    type: Mapped[str] = mapped_column(String(20))  # checking|savings|cash|card|deposit|other
+    currency: Mapped[str] = mapped_column(String(3))  # 3-letter code
+    opening_balance_minor: Mapped[int] = mapped_column(default=0)
+    archived: Mapped[bool] = mapped_column(default=False)
+    sort_order: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+
+class CategoryGroup(Base):
+    __tablename__ = "category_groups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(20))  # expense|income
+    sort_order: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), index=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("category_groups.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    archived: Mapped[bool] = mapped_column(default=False)
+    sort_order: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), index=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), index=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="RESTRICT"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # expense|income — server-derived from category group
+    amount_minor: Mapped[int]  # always > 0; sign is implicit in kind
+    currency: Mapped[str] = mapped_column(String(3))  # copied from account at creation
+    date: Mapped[date]
+    payee: Mapped[str | None] = mapped_column(String(200))
+    note: Mapped[str | None] = mapped_column(String(500))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+
+class Transfer(Base):
+    __tablename__ = "transfers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), index=True)
+    from_account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), index=True)
+    to_account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), index=True)
+    from_amount_minor: Mapped[int]  # > 0; deducted from from_account
+    to_amount_minor: Mapped[int]  # > 0; added to to_account
+    date: Mapped[date]
+    note: Mapped[str | None] = mapped_column(String(500))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

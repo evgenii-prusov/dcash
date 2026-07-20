@@ -84,7 +84,7 @@ class Account(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     household_id: Mapped[int] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(200))
-    type: Mapped[str] = mapped_column(String(20))  # checking|savings|cash|card|deposit|other
+    type: Mapped[str] = mapped_column(String(20))  # savings|cash|card
     currency: Mapped[str] = mapped_column(String(3))  # 3-letter code
     opening_balance_minor: Mapped[int] = mapped_column(default=0)
     archived: Mapped[bool] = mapped_column(default=False)

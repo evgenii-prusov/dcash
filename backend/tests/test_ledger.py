@@ -16,8 +16,8 @@ pytestmark = pytest.mark.anyio
 
 async def make_account(client: AsyncTestClient, **kwargs) -> dict:
     payload = {
-        "name": "Checking",
-        "type": "checking",
+        "name": "Savings",
+        "type": "savings",
         "currency": "EUR",
         "opening_balance_minor": 0,
         **kwargs,

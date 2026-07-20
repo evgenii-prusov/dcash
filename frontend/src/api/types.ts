@@ -42,7 +42,7 @@ export interface HouseholdInvite {
 // E3: Core Ledger
 // ---------------------------------------------------------------------------
 
-export type AccountType = 'checking' | 'savings' | 'cash' | 'card' | 'deposit' | 'other'
+export type AccountType = 'savings' | 'cash' | 'card'
 
 export interface Account {
   id: number

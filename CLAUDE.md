@@ -88,6 +88,13 @@ Makefile mirrors dtasks (arrives with the scaffolding epic): `make install`,
 - Every domain query is scoped by the session user's `household_id`.
 - Env vars are prefixed `DCASH_`.
 - Feature branches + PRs; no direct commits to `main`.
+- **Always cut new branches from `main`**: `git checkout -b <name> origin/main`.
+  Never branch off a sibling feature branch — squash-merge creates a diverged
+  history that conflicts when you open a PR against main.
+- **CI quality gates** (both must pass before merge):
+  1. `cd backend && uv run ruff check .` — covers `app/`, `tests/`, `scripts/`
+  2. `cd backend && uv run ruff format --check .`
+  The pre-commit hook mirrors these; run both locally before pushing.
 - When porting from dtasks, prefer copying its proven code/patterns over
   reinventing (auth, backup script, CD workflow, Makefile, app shell).
 - Load the `dataviz` skill before writing any chart code.

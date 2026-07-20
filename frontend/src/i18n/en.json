@@ -122,5 +122,15 @@
     "manual": "manual",
     "override": "Override",
     "overrideTitle": "Set manual rate override"
+  },
+  "dashboard": {
+    "income": "Income",
+    "expenses": "Expenses",
+    "net": "Net total",
+    "spendingByCategory": "Spending by category",
+    "netWorthTrend": "Net worth trend",
+    "recentEntries": "Recent entries",
+    "noSpending": "No expenses recorded this month.",
+    "noNetWorth": "No net worth points recorded yet."
   }
 }

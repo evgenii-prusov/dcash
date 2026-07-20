@@ -255,3 +255,53 @@ class RateOut(msgspec.Struct):
 
 class RateOverridePayload(msgspec.Struct):
     rate_to_eur: str
+
+
+# ---------------------------------------------------------------------------
+# E5: Reports & Dashboard
+# ---------------------------------------------------------------------------
+
+
+class SummaryAccount(msgspec.Struct):
+    id: int
+    name: str
+    type: str
+    currency: str
+    balance_minor: int
+    balance_eur_minor: int
+
+
+class ReportSummaryOut(msgspec.Struct):
+    month: str
+    income_eur_minor: int
+    expenses_eur_minor: int
+    net_eur_minor: int
+    accounts: list[SummaryAccount]
+
+
+class CategoryRollup(msgspec.Struct):
+    category_id: int
+    category_name: str
+    total_eur_minor: int
+
+
+class GroupRollup(msgspec.Struct):
+    group_id: int
+    group_name: str
+    total_eur_minor: int
+    categories: list[CategoryRollup]
+
+
+class ReportCategoriesOut(msgspec.Struct):
+    month: str
+    kind: str
+    groups: list[GroupRollup]
+
+
+class NetWorthPoint(msgspec.Struct):
+    month: str
+    net_worth_eur_minor: int
+
+
+class ReportNetWorthOut(msgspec.Struct):
+    points: list[NetWorthPoint]

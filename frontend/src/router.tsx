@@ -15,6 +15,7 @@ import { WelcomeView } from './views/WelcomeView'
 import { AccountsView } from './views/AccountsView'
 import { TransactionsView } from './views/TransactionsView'
 import { SettingsView } from './views/SettingsView'
+import { DashboardView } from './views/DashboardView'
 import { currentUserQueryOptions } from './api/hooks'
 import { createQueryClient } from './queryClient'
 import type { IconName } from './components/Icon'
@@ -112,7 +113,7 @@ const authedRoute = createRoute({
 const dashboardRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/',
-  component: makePlaceholderView('dashboard', 'dashboard'),
+  component: DashboardView,
 })
 
 const transactionsRoute = createRoute({

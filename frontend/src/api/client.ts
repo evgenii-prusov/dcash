@@ -118,4 +118,16 @@ export const api = {
       body: JSON.stringify({ rate_to_eur }),
     }),
   refreshRates: () => request<import('./types').Rate[]>('/api/rates/refresh', { method: 'POST' }),
+
+  // E5: Reports
+  getReportSummary: (month: string) =>
+    request<import('./types').ReportSummary>(`/api/reports/summary?month=${month}`),
+  getReportCategories: (month: string, kind: 'expense' | 'income' = 'expense') =>
+    request<import('./types').ReportCategories>(`/api/reports/categories?month=${month}&kind=${kind}`),
+  getReportNetWorth: (from?: string, to?: string) => {
+    const qs = new URLSearchParams()
+    if (from) qs.set('from', from)
+    if (to) qs.set('to', to)
+    return request<import('./types').ReportNetWorth>(`/api/reports/net-worth?${qs}`)
+  },
 }

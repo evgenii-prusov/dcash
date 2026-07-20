@@ -167,3 +167,52 @@ export interface Rate {
   rate_to_eur: string
   source: 'auto' | 'manual'
 }
+
+// ---------------------------------------------------------------------------
+// E5: Reports & Dashboard
+// ---------------------------------------------------------------------------
+
+export interface SummaryAccount {
+  id: number
+  name: string
+  type: AccountType
+  currency: string
+  balance_minor: number
+  balance_eur_minor: number
+}
+
+export interface ReportSummary {
+  month: string
+  income_eur_minor: number
+  expenses_eur_minor: number
+  net_eur_minor: number
+  accounts: SummaryAccount[]
+}
+
+export interface CategoryRollup {
+  category_id: number
+  category_name: string
+  total_eur_minor: number
+}
+
+export interface GroupRollup {
+  group_id: number
+  group_name: string
+  total_eur_minor: number
+  categories: CategoryRollup[]
+}
+
+export interface ReportCategories {
+  month: string
+  kind: 'expense' | 'income'
+  groups: GroupRollup[]
+}
+
+export interface NetWorthPoint {
+  month: string
+  net_worth_eur_minor: number
+}
+
+export interface ReportNetWorth {
+  points: NetWorthPoint[]
+}

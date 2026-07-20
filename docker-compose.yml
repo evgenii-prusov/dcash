@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    image: ghcr.io/evgenii-prusov/dcash:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DCASH_DB_PATH: /data/dcash.sqlite
+      DCASH_SESSION_DIR: /data/sessions
+      DCASH_SECURE_COOKIES: "1"
+      DCASH_PUBLIC_URL: https://dengi.dev
+    volumes:
+      - dcash-data:/data
+    expose:
+      - "8000"
+    networks:
+      web:
+        aliases:
+          - dcash-app
+
+networks:
+  web:
+    external: true
+
+volumes:
+  dcash-data:

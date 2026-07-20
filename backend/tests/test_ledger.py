@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import pytest
+from conftest import MakeClient
 from litestar.testing import AsyncTestClient
-
-from conftest import DEFAULT_EMAIL, DEFAULT_PASSWORD, MakeClient, TEST_INVITE_CODE
-
 
 pytestmark = pytest.mark.anyio
 
@@ -223,7 +221,12 @@ async def test_transaction_amount_zero_rejected(client: AsyncTestClient) -> None
     cat = await get_first_expense_category(client)
     resp = await client.post(
         "/api/transactions",
-        json={"account_id": acct["id"], "category_id": cat["category_id"], "amount_minor": 0, "date": "2026-07-01"},
+        json={
+            "account_id": acct["id"],
+            "category_id": cat["category_id"],
+            "amount_minor": 0,
+            "date": "2026-07-01",
+        },
     )
     assert resp.status_code == 400
 

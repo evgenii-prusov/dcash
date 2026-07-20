@@ -171,9 +171,16 @@ function AccountCard({ account, locale }: { account: Account; locale: string }) 
       </div>
       <div className="flex items-end justify-between px-4 py-3">
         <span className="text-[11px] text-text-3">{account.currency}</span>
-        <span className={`tnum text-[20px] font-semibold tracking-tight ${balanceColor}`}>
-          {formatMoney(account.balance_minor, account.currency, locale)}
-        </span>
+        <div className="flex items-baseline gap-1.5">
+          <span className={`tnum text-[20px] font-semibold tracking-tight ${balanceColor}`}>
+            {formatMoney(account.balance_minor, account.currency, locale)}
+          </span>
+          {account.currency !== 'EUR' && (
+            <span className="tnum text-[13px] text-text-3 font-normal">
+              (~{formatMoney(account.balance_eur_minor, 'EUR', locale)})
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

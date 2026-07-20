@@ -51,6 +51,7 @@ export interface Account {
   currency: string
   opening_balance_minor: number
   balance_minor: number
+  balance_eur_minor: number
   archived: boolean
   sort_order: number
 }
@@ -111,6 +112,7 @@ export interface Transaction {
   group_name: string
   kind: 'expense' | 'income'
   amount_minor: number
+  amount_eur_minor: number
   currency: string
   date: string
   payee: string | null
@@ -142,6 +144,8 @@ export interface Transfer {
   to_account_name: string
   from_amount_minor: number
   to_amount_minor: number
+  from_amount_eur_minor: number
+  to_amount_eur_minor: number
   from_currency: string
   to_currency: string
   date: string
@@ -152,3 +156,14 @@ export interface Transfer {
 export type LedgerEntry =
   | ({ type: 'transaction' } & Transaction)
   | ({ type: 'transfer' } & Transfer)
+
+// ---------------------------------------------------------------------------
+// E4: FX Rates
+// ---------------------------------------------------------------------------
+
+export interface Rate {
+  date: string
+  currency: string
+  rate_to_eur: string
+  source: 'auto' | 'manual'
+}

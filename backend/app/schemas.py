@@ -75,6 +75,7 @@ class AccountOut(msgspec.Struct):
     currency: str
     opening_balance_minor: int
     balance_minor: int
+    balance_eur_minor: int
     archived: bool
     sort_order: int
 
@@ -153,6 +154,7 @@ class TransactionOut(msgspec.Struct):
     group_name: str
     kind: str
     amount_minor: int
+    amount_eur_minor: int
     currency: str
     date: date
     payee: str | None
@@ -189,6 +191,8 @@ class TransferOut(msgspec.Struct):
     to_account_name: str
     from_amount_minor: int
     to_amount_minor: int
+    from_amount_eur_minor: int
+    to_amount_eur_minor: int
     from_currency: str
     to_currency: str
     date: date
@@ -211,6 +215,7 @@ class LedgerTransaction(msgspec.Struct):
     group_name: str
     kind: str
     amount_minor: int
+    amount_eur_minor: int
     currency: str
     date: date
     payee: str | None
@@ -227,8 +232,26 @@ class LedgerTransfer(msgspec.Struct):
     to_account_name: str
     from_amount_minor: int
     to_amount_minor: int
+    from_amount_eur_minor: int
+    to_amount_eur_minor: int
     from_currency: str
     to_currency: str
     date: date
     note: str | None
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# E4: Rates
+# ---------------------------------------------------------------------------
+
+
+class RateOut(msgspec.Struct):
+    date: date
+    currency: str
+    rate_to_eur: str
+    source: str
+
+
+class RateOverridePayload(msgspec.Struct):
+    rate_to_eur: str

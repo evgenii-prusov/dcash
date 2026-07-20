@@ -82,6 +82,14 @@ function TxRow({
               <> → {formatMoney(tr.to_amount_minor, tr.to_currency, locale)}</>
             )}
           </span>
+          {(tr.from_currency !== 'EUR' || tr.to_currency !== 'EUR') && (
+            <span className="tnum text-[11px] text-text-3 font-normal">
+              ~{formatMoney(tr.from_amount_eur_minor, 'EUR', locale)}
+              {tr.from_currency !== tr.to_currency && (
+                <> → ~{formatMoney(tr.to_amount_eur_minor, 'EUR', locale)}</>
+              )}
+            </span>
+          )}
           <span className="text-[11px] text-text-3">{tr.date}</span>
         </div>
         {confirm ? (
@@ -126,6 +134,11 @@ function TxRow({
           {amountSign}
           {formatMoney(tx.amount_minor, tx.currency, locale)}
         </span>
+        {tx.currency !== 'EUR' && (
+          <span className="tnum text-[11px] text-text-3 font-normal">
+            (~{amountSign}{formatMoney(tx.amount_eur_minor, 'EUR', locale)})
+          </span>
+        )}
         <span className="text-[11px] text-text-3">{tx.date}</span>
       </div>
       {confirm ? (

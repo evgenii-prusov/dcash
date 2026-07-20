@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any
 
 from litestar import Request, Router, delete, patch, post
@@ -7,6 +5,7 @@ from litestar.exceptions import NotFoundException, ValidationException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .fx import convert_to_eur, get_rate_for_date
 from .household import HouseholdCtx
 from .models import Account, Category, CategoryGroup, Transaction, User
 from .schemas import UNSET, TransactionCreate, TransactionOut, TransactionPatch
@@ -16,6 +15,8 @@ async def _tx_out(session: AsyncSession, tx: Transaction) -> TransactionOut:
     account = await session.get(Account, tx.account_id)
     cat = await session.get(Category, tx.category_id)
     group = await session.get(CategoryGroup, cat.group_id)  # type: ignore[union-attr]
+    rate_to_eur = await get_rate_for_date(session, tx.currency, tx.date)
+    amount_eur_minor = convert_to_eur(tx.amount_minor, tx.currency, rate_to_eur)
     return TransactionOut(
         id=tx.id,
         account_id=tx.account_id,
@@ -25,6 +26,7 @@ async def _tx_out(session: AsyncSession, tx: Transaction) -> TransactionOut:
         group_name=group.name,  # type: ignore[union-attr]
         kind=tx.kind,
         amount_minor=tx.amount_minor,
+        amount_eur_minor=amount_eur_minor,
         currency=tx.currency,
         date=tx.date,
         payee=tx.payee,

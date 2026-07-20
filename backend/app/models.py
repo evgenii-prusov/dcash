@@ -145,3 +145,21 @@ class Transfer(Base):
     note: Mapped[str | None] = mapped_column(String(500))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+
+# ---------------------------------------------------------------------------
+# E4: FX Rates
+# ---------------------------------------------------------------------------
+
+
+class Rate(Base):
+    __tablename__ = "rates"
+
+    date: Mapped[date] = mapped_column(primary_key=True)
+    currency: Mapped[str] = mapped_column(String(3), primary_key=True)
+    rate_to_eur: Mapped[str] = mapped_column(String(32))  # TEXT representation of Decimal
+    source: Mapped[str] = mapped_column(String(10))  # "auto" | "manual"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )

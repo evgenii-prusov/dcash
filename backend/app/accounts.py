@@ -1,10 +1,11 @@
-from __future__ import annotations
+from datetime import date
 
 from litestar import Router, get, patch, post
 from litestar.exceptions import NotFoundException, ValidationException
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .fx import convert_to_eur, get_rate_for_date
 from .household import HouseholdCtx
 from .models import Account, Transaction, Transfer
 from .schemas import ACCOUNT_TYPES, UNSET, AccountCreate, AccountOut, AccountPatch
@@ -63,7 +64,9 @@ async def _compute_balances(
     }
 
 
-def _account_out(account: Account, balance_minor: int) -> AccountOut:
+async def _account_out(session: AsyncSession, account: Account, balance_minor: int) -> AccountOut:
+    rate_to_eur = await get_rate_for_date(session, account.currency, date.today())
+    balance_eur_minor = convert_to_eur(balance_minor, account.currency, rate_to_eur)
     return AccountOut(
         id=account.id,
         name=account.name,
@@ -71,6 +74,7 @@ def _account_out(account: Account, balance_minor: int) -> AccountOut:
         currency=account.currency,
         opening_balance_minor=account.opening_balance_minor,
         balance_minor=balance_minor,
+        balance_eur_minor=balance_eur_minor,
         archived=account.archived,
         sort_order=account.sort_order,
     )
@@ -88,7 +92,7 @@ async def list_accounts(hh: HouseholdCtx, session: AsyncSession) -> list[Account
         .all()
     )
     balances = await _compute_balances(session, hh.id, list(accounts))
-    return [_account_out(a, balances[a.id]) for a in accounts]
+    return [await _account_out(session, a, balances[a.id]) for a in accounts]
 
 
 @post("/", status_code=201)
@@ -108,7 +112,7 @@ async def create_account(data: AccountCreate, hh: HouseholdCtx, session: AsyncSe
     )
     session.add(account)
     await session.commit()
-    return _account_out(account, account.opening_balance_minor)
+    return await _account_out(session, account, account.opening_balance_minor)
 
 
 @patch("/{account_id:int}")
@@ -130,7 +134,7 @@ async def patch_account(
         account.sort_order = data.sort_order  # type: ignore[assignment]
     await session.commit()
     balances = await _compute_balances(session, hh.id, [account])
-    return _account_out(account, balances[account.id])
+    return await _account_out(session, account, balances[account.id])
 
 
 accounts_router = Router(

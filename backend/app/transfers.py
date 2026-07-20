@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any
 
 from litestar import Request, Router, delete, patch, post
@@ -7,6 +5,7 @@ from litestar.exceptions import NotFoundException, ValidationException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .fx import convert_to_eur, get_rate_for_date
 from .household import HouseholdCtx
 from .models import Account, Transfer, User
 from .schemas import UNSET, TransferCreate, TransferOut, TransferPatch
@@ -15,6 +14,10 @@ from .schemas import UNSET, TransferCreate, TransferOut, TransferPatch
 async def _transfer_out(session: AsyncSession, tr: Transfer) -> TransferOut:
     from_acct = await session.get(Account, tr.from_account_id)
     to_acct = await session.get(Account, tr.to_account_id)
+    from_rate = await get_rate_for_date(session, from_acct.currency, tr.date)  # type: ignore[union-attr]
+    to_rate = await get_rate_for_date(session, to_acct.currency, tr.date)  # type: ignore[union-attr]
+    from_amount_eur_minor = convert_to_eur(tr.from_amount_minor, from_acct.currency, from_rate)  # type: ignore[union-attr]
+    to_amount_eur_minor = convert_to_eur(tr.to_amount_minor, to_acct.currency, to_rate)  # type: ignore[union-attr]
     return TransferOut(
         id=tr.id,
         from_account_id=tr.from_account_id,
@@ -23,6 +26,8 @@ async def _transfer_out(session: AsyncSession, tr: Transfer) -> TransferOut:
         to_account_name=to_acct.name,  # type: ignore[union-attr]
         from_amount_minor=tr.from_amount_minor,
         to_amount_minor=tr.to_amount_minor,
+        from_amount_eur_minor=from_amount_eur_minor,
+        to_amount_eur_minor=to_amount_eur_minor,
         from_currency=from_acct.currency,  # type: ignore[union-attr]
         to_currency=to_acct.currency,  # type: ignore[union-attr]
         date=tr.date,

@@ -226,3 +226,39 @@ export function useLedger(params: { month: string; account_id?: number; category
     enabled: !!params.month,
   })
 }
+
+// ---------------------------------------------------------------------------
+// E4: Rates
+// ---------------------------------------------------------------------------
+
+export function useRates(date?: string) {
+  return useQuery({
+    queryKey: ['rates', date],
+    queryFn: () => api.getRates(date),
+  })
+}
+
+export function useOverrideRate() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ date, currency, rate_to_eur }: { date: string; currency: string; rate_to_eur: string }) =>
+      api.overrideRate(date, currency, rate_to_eur),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rates'] })
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['ledger'] })
+    },
+  })
+}
+
+export function useRefreshRates() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.refreshRates(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rates'] })
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['ledger'] })
+    },
+  })
+}

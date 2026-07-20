@@ -110,5 +110,17 @@
     "createInvite": "Create invite",
     "activeInvites": "Active invites",
     "members": "Members"
+  },
+  "rates": {
+    "title": "Currencies & FX rates",
+    "refresh": "Refresh rates",
+    "currency": "Currency",
+    "rateToEur": "EUR per unit",
+    "inverse": "Units per EUR",
+    "source": "Source",
+    "auto": "auto",
+    "manual": "manual",
+    "override": "Override",
+    "overrideTitle": "Set manual rate override"
   }
 }

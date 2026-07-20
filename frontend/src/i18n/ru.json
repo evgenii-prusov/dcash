@@ -110,5 +110,17 @@
     "createInvite": "Создать приглашение",
     "activeInvites": "Активные приглашения",
     "members": "Участники"
+  },
+  "rates": {
+    "title": "Валюты и курсы",
+    "refresh": "Обновить курсы",
+    "currency": "Валюта",
+    "rateToEur": "Курс к EUR",
+    "inverse": "За 1 EUR",
+    "source": "Источник",
+    "auto": "авто",
+    "manual": "вручную",
+    "override": "Изменить",
+    "overrideTitle": "Установить курс вручную"
   }
 }

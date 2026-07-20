@@ -1,13 +1,14 @@
-from __future__ import annotations
-
 import calendar
 from datetime import date
+from typing import Annotated
 
 from litestar import Router, get
 from litestar.exceptions import ValidationException
+from litestar.params import QueryParameter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .fx import convert_to_eur, get_rates_map
 from .household import HouseholdCtx
 from .models import Account, Category, CategoryGroup, Transaction, Transfer
 from .schemas import LedgerTransaction, LedgerTransfer
@@ -28,10 +29,10 @@ def _parse_month(month: str) -> tuple[date, date]:
 async def get_ledger(
     hh: HouseholdCtx,
     session: AsyncSession,
-    month: str,
-    account_id: int | None = None,
-    category_id: int | None = None,
-    q: str | None = None,
+    month: Annotated[str, QueryParameter(name="month")],
+    account_id: Annotated[int | None, QueryParameter(name="account_id")] = None,
+    category_id: Annotated[int | None, QueryParameter(name="category_id")] = None,
+    q: Annotated[str | None, QueryParameter(name="q")] = None,
 ) -> list[LedgerTransaction | LedgerTransfer]:
     first, last = _parse_month(month)
 
@@ -67,7 +68,6 @@ async def get_ledger(
         tr_query = tr_query.where(
             (Transfer.from_account_id == account_id) | (Transfer.to_account_id == account_id)
         )
-    # category filter doesn't apply to transfers; q filter applies to note
     if q:
         tr_query = tr_query.where(Transfer.note.ilike(f"%{q}%"))
 
@@ -85,9 +85,27 @@ async def get_ledger(
         )
         account_map = {a.id: a for a in acct_rows}
 
+    # Collect rate pairs
+    rate_pairs: set[tuple[date, str]] = set()
+    for tx, _, _, _ in tx_rows:
+        rate_pairs.add((tx.date, tx.currency))
+    for tr in tr_rows:
+        from_acct = account_map.get(tr.from_account_id)
+        to_acct = account_map.get(tr.to_account_id)
+        if from_acct:
+            rate_pairs.add((tr.date, from_acct.currency))
+        if to_acct:
+            rate_pairs.add((tr.date, to_acct.currency))
+
+    rates_map = await get_rates_map(session, rate_pairs)
+
     entries: list[LedgerTransaction | LedgerTransfer] = []
 
     for tx, acct, cat, grp in tx_rows:
+        r_val = rates_map.get((tx.date, tx.currency))
+        amt_eur = (
+            convert_to_eur(tx.amount_minor, tx.currency, r_val) if r_val is not None else tx.amount_minor
+        )
         entries.append(
             LedgerTransaction(
                 type="transaction",
@@ -99,6 +117,7 @@ async def get_ledger(
                 group_name=grp.name,
                 kind=tx.kind,
                 amount_minor=tx.amount_minor,
+                amount_eur_minor=amt_eur,
                 currency=tx.currency,
                 date=tx.date,
                 payee=tx.payee,
@@ -110,6 +129,17 @@ async def get_ledger(
     for tr in tr_rows:
         from_acct = account_map.get(tr.from_account_id)
         to_acct = account_map.get(tr.to_account_id)
+        from_curr = from_acct.currency if from_acct else "EUR"
+        to_curr = to_acct.currency if to_acct else "EUR"
+        from_r = rates_map.get((tr.date, from_curr))
+        to_r = rates_map.get((tr.date, to_curr))
+        from_eur = (
+            convert_to_eur(tr.from_amount_minor, from_curr, from_r)
+            if from_r is not None
+            else tr.from_amount_minor
+        )
+        to_eur = convert_to_eur(tr.to_amount_minor, to_curr, to_r) if to_r is not None else tr.to_amount_minor
+
         entries.append(
             LedgerTransfer(
                 type="transfer",
@@ -120,8 +150,10 @@ async def get_ledger(
                 to_account_name=to_acct.name if to_acct else "",
                 from_amount_minor=tr.from_amount_minor,
                 to_amount_minor=tr.to_amount_minor,
-                from_currency=from_acct.currency if from_acct else "",
-                to_currency=to_acct.currency if to_acct else "",
+                from_amount_eur_minor=from_eur,
+                to_amount_eur_minor=to_eur,
+                from_currency=from_curr,
+                to_currency=to_curr,
                 date=tr.date,
                 note=tr.note,
                 created_at=tr.created_at,

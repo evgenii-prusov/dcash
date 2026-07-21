@@ -104,6 +104,7 @@
     "omniboxHint": "! amount · # account · @ category · date · // note · anything left = merchant",
     "detailed": "Detailed",
     "createCategoryIn": "Create \"{{name}}\" in ▸",
+    "categoryPlaceholder": "Category",
     "recentMerchants": "Recent merchants",
     "split": "Split",
     "splitTitle": "Split {{amount}} into categories",

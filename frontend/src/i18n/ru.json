@@ -104,6 +104,7 @@
     "omniboxHint": "! сумма · # счёт · @ категория · дата · // заметка · остальное = продавец",
     "detailed": "Подробно",
     "createCategoryIn": "Создать «{{name}}» в ▸",
+    "categoryPlaceholder": "Категория",
     "recentMerchants": "Последние продавцы",
     "split": "Разделить",
     "splitTitle": "Разделить {{amount}} по категориям",

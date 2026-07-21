@@ -2,10 +2,10 @@ import { useState, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Ic } from '../components/Icon'
 import { CategoryPicker } from '../components/CategoryPicker'
+import { OmniboxAdd } from '../components/OmniboxAdd'
 import {
   useAccounts,
   useCategories,
-  useCreateTransaction,
   useCreateTransfer,
   useDeleteSplitGroup,
   useDeleteTransaction,
@@ -540,96 +540,6 @@ function SplitGroupRow({
 }
 
 // ---------------------------------------------------------------------------
-// Quick-add row (transaction)
-// ---------------------------------------------------------------------------
-
-function QuickAddTx({
-  groups,
-  accountOptions,
-  onAdded,
-}: {
-  groups: CategoryGroup[]
-  accountOptions: { id: number; name: string; currency: string }[]
-  onAdded: () => void
-}) {
-  const { t } = useTranslation()
-  const createTx = useCreateTransaction()
-
-  const allCats = useMemo(() => groups.flatMap((g) => g.categories.map((c) => ({ ...c, groupKind: g.kind }))), [groups])
-
-  const [accountId, setAccountId] = useState<number>(accountOptions[0]?.id ?? 0)
-  const [categoryId, setCategoryId] = useState<number>(allCats[0]?.id ?? 0)
-  const [amount, setAmount] = useState('')
-  const [date, setDate] = useState(todayISO())
-  const [payee, setPayee] = useState('')
-  const [error, setError] = useState('')
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    const amountMinor = Math.round(parseFloat(amount) * 100)
-    if (!amount || isNaN(amountMinor) || amountMinor <= 0) return setError(t('ledger.invalidAmount'))
-    if (!accountId || !categoryId) return setError(t('ledger.selectAccountCategory'))
-    try {
-      await createTx.mutateAsync({ account_id: accountId, category_id: categoryId, amount_minor: amountMinor, date, payee: payee || null })
-      setAmount('')
-      setPayee('')
-      setDate(todayISO())
-      onAdded()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('common.genericError'))
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 border-b border-line px-4 py-3">
-      {error && <p className="text-[12px] text-warn">{error}</p>}
-      <div className="flex flex-wrap gap-2">
-        <select className="sel" value={accountId} onChange={(e) => setAccountId(Number(e.target.value))}>
-          {accountOptions.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name} ({a.currency})
-            </option>
-          ))}
-        </select>
-        <select className="sel" value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))}>
-          {groups.map((g) =>
-            g.categories.length > 0 ? (
-              <optgroup key={g.id} label={g.name}>
-                {g.categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null
-          )}
-        </select>
-        <input
-          className="input tnum w-28"
-          type="number"
-          step="0.01"
-          placeholder={t('ledger.amount')}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-        <input className="input w-32" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        <input
-          className="input min-w-[12rem] flex-1"
-          placeholder={t('ledger.payee')}
-          value={payee}
-          onChange={(e) => setPayee(e.target.value)}
-        />
-        <button type="submit" className="btn btn-p btn-s" disabled={createTx.isPending}>
-          <Ic n="plus" s={12} />
-          {createTx.isPending ? t('common.saving') : t('ledger.addTransaction')}
-        </button>
-      </div>
-    </form>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Quick-add transfer
 // ---------------------------------------------------------------------------
 
@@ -883,9 +793,9 @@ export function TransactionsView() {
             </button>
           </div>
           {addMode === 'transaction' && groups && accountOptions.length > 0 && (
-            <QuickAddTx
+            <OmniboxAdd
               groups={groups}
-              accountOptions={accountOptions}
+              accounts={accounts ?? []}
               onAdded={() => setAddMode('none')}
             />
           )}

@@ -159,7 +159,35 @@ class TransactionOut(msgspec.Struct):
     date: date
     payee: str | None
     note: str | None
+    split_group_id: int | None
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# E7: Transaction splits
+# ---------------------------------------------------------------------------
+
+
+class TransactionSplitLine(msgspec.Struct):
+    category_id: int
+    amount_minor: int
+    note: str | None = None
+
+
+class TransactionSplitPayload(msgspec.Struct):
+    """Body for POST /{tx_id}/split — splits an existing transaction in place."""
+
+    lines: list[TransactionSplitLine]
+
+
+class TransactionSplitCreate(msgspec.Struct):
+    """Body for POST /splits — creates an already-split entry from scratch."""
+
+    account_id: int
+    date: date
+    lines: list[TransactionSplitLine]
+    payee: str | None = None
+    note: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +248,7 @@ class LedgerTransaction(msgspec.Struct):
     date: date
     payee: str | None
     note: str | None
+    split_group_id: int | None
     created_at: datetime
 
 

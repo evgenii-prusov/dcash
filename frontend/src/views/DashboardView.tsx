@@ -253,7 +253,12 @@ export function DashboardView() {
                     {isIncome ? t('ledger.income') : t('ledger.expense')}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-medium">{entry.category_name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="text-[13px] font-medium">{entry.category_name}</div>
+                      {entry.split_group_id != null && (
+                        <span className="badge b-low shrink-0">{t('ledger.splitBadge')}</span>
+                      )}
+                    </div>
                     {entry.payee && <div className="text-[11px] text-text-3">{entry.payee}</div>}
                   </div>
                   <div className="flex flex-col items-end">

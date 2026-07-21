@@ -11,6 +11,7 @@ import {
   useDeleteTransaction,
   useDeleteTransfer,
   useLedger,
+  usePatchTransaction,
   useSplitTransaction,
 } from '../api/hooks'
 import type { CategoryGroup, LedgerEntry, Transaction, Transfer } from '../api/types'
@@ -94,6 +95,13 @@ function TxRow({
   const [splitError, setSplitError] = useState('')
   const nextLineId = useRef(0)
   const splitTx = useSplitTransaction()
+
+  // Inline edit — the only way to correct a record after creation
+  // (payee especially, which is easy to skip while entering at the till).
+  const [editOpen, setEditOpen] = useState(false)
+  const [edit, setEdit] = useState({ categoryId: 0, amountStr: '', date: '', payee: '', note: '' })
+  const [editError, setEditError] = useState('')
+  const patchTx = usePatchTransaction()
 
   if (entry.type === 'transfer') {
     const tr = entry as { type: 'transfer' } & Transfer
@@ -179,6 +187,41 @@ function TxRow({
     lines.length >= 2 &&
     lines.every((l) => l.categoryId != null && parseAmountMinor(l.amountStr) > 0)
 
+  function openEdit() {
+    setEdit({
+      categoryId: tx.category_id,
+      amountStr: (tx.amount_minor / 100).toFixed(2),
+      date: tx.date,
+      payee: tx.payee ?? '',
+      note: tx.note ?? '',
+    })
+    setEditError('')
+    setEditOpen(true)
+  }
+
+  function handleEditSave() {
+    setEditError('')
+    const amountMinor = parseAmountMinor(edit.amountStr)
+    if (amountMinor <= 0) return setEditError(t('ledger.invalidAmount'))
+    patchTx.mutate(
+      {
+        id: tx.id,
+        data: {
+          category_id: edit.categoryId,
+          amount_minor: amountMinor,
+          date: edit.date,
+          // Empty string clears the field server-side; null is the "unset" value.
+          payee: edit.payee.trim() || null,
+          note: edit.note.trim() || null,
+        },
+      },
+      {
+        onSuccess: () => setEditOpen(false),
+        onError: (err: unknown) => setEditError(err instanceof Error ? err.message : t('common.genericError')),
+      },
+    )
+  }
+
   function handleSave() {
     setSplitError('')
     splitTx.mutate(
@@ -237,6 +280,13 @@ function TxRow({
           </div>
         ) : (
           <div className="flex gap-1">
+            <button
+              className={`btn btn-s ${editOpen ? 'btn-p' : 'btn-g'}`}
+              title={t('ledger.editEntry')}
+              onClick={() => (editOpen ? setEditOpen(false) : openEdit())}
+            >
+              <Ic n="edit" s={11} />
+            </button>
             {tx.split_group_id === null && (
               <button
                 className={`btn btn-s ${splitOpen ? 'btn-p' : 'btn-g'}`}
@@ -251,6 +301,55 @@ function TxRow({
           </div>
         )}
       </div>
+
+      {editOpen && (
+        <div className="flex flex-col gap-2 border-b border-line bg-surface-2 px-4 py-3">
+          <div className="text-[12px] font-medium">{t('ledger.editEntry')}</div>
+          {editError && <p className="text-[12px] text-warn">{editError}</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            <CategoryPicker
+              groups={groups}
+              value={edit.categoryId}
+              onSelect={(sel) => setEdit((p) => ({ ...p, categoryId: sel.id }))}
+              kindFilter={tx.kind}
+              className="min-w-[10rem] flex-1"
+            />
+            <input
+              className="input tnum w-24"
+              type="number"
+              step="0.01"
+              value={edit.amountStr}
+              onChange={(e) => setEdit((p) => ({ ...p, amountStr: e.target.value }))}
+            />
+            <input
+              className="input w-32"
+              type="date"
+              value={edit.date}
+              onChange={(e) => setEdit((p) => ({ ...p, date: e.target.value }))}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              className="input min-w-[10rem] flex-1"
+              placeholder={t('ledger.payee')}
+              value={edit.payee}
+              onChange={(e) => setEdit((p) => ({ ...p, payee: e.target.value }))}
+            />
+            <input
+              className="input min-w-[10rem] flex-1"
+              placeholder={t('ledger.note')}
+              value={edit.note}
+              onChange={(e) => setEdit((p) => ({ ...p, note: e.target.value }))}
+            />
+            <button className="btn btn-p btn-s" onClick={handleEditSave} disabled={patchTx.isPending}>
+              {patchTx.isPending ? t('common.saving') : t('common.save')}
+            </button>
+            <button className="btn btn-g btn-s" onClick={() => setEditOpen(false)}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {splitOpen && (
         <div className="flex flex-col gap-2 border-b border-line bg-surface-2 px-4 py-3">
@@ -516,7 +615,7 @@ function QuickAddTx({
         />
         <input className="input w-32" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         <input
-          className="input flex-1"
+          className="input min-w-[12rem] flex-1"
           placeholder={t('ledger.payee')}
           value={payee}
           onChange={(e) => setPayee(e.target.value)}

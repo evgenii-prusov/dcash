@@ -92,6 +92,8 @@
     "transfer": "transfer",
     "amount": "Amount",
     "payee": "Payee",
+    "note": "Note",
+    "editEntry": "Edit entry",
     "search": "Search…",
     "allAccounts": "All accounts",
     "allCategories": "All categories",

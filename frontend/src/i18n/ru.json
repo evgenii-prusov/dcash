@@ -92,6 +92,8 @@
     "transfer": "перевод",
     "amount": "Сумма",
     "payee": "Получатель",
+    "note": "Заметка",
+    "editEntry": "Изменить операцию",
     "search": "Поиск…",
     "allAccounts": "Все счета",
     "allCategories": "Все категории",

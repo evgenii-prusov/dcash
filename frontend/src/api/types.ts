@@ -118,6 +118,7 @@ export interface Transaction {
   payee: string | null
   note: string | null
   created_at: string
+  split_group_id: number | null
 }
 
 export interface TransferCreate {
@@ -156,6 +157,37 @@ export interface Transfer {
 export type LedgerEntry =
   | ({ type: 'transaction' } & Transaction)
   | ({ type: 'transfer' } & Transfer)
+
+// ---------------------------------------------------------------------------
+// Transaction splits + omnibox quick-add
+// ---------------------------------------------------------------------------
+
+export interface TransactionSplitLine {
+  category_id: number
+  amount_minor: number
+  note?: string | null
+}
+
+/** Body for POST /api/transactions/{id}/split — splits an existing row. */
+export interface TransactionSplitPayload {
+  lines: TransactionSplitLine[]
+}
+
+/** Body for POST /api/transactions/splits — creates an already-split entry. */
+export interface TransactionSplitCreate {
+  account_id: number
+  date: string // YYYY-MM-DD
+  lines: TransactionSplitLine[]
+  payee?: string | null
+  note?: string | null
+}
+
+export interface PayeeSuggestion {
+  name: string
+  count: number
+  last_used: string // YYYY-MM-DD
+  top_category_id: number | null
+}
 
 // ---------------------------------------------------------------------------
 // E4: FX Rates

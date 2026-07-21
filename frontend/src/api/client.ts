@@ -10,10 +10,13 @@ import type {
   HouseholdMember,
   LedgerEntry,
   LoginPayload,
+  PayeeSuggestion,
   SignupPayload,
   Transaction,
   TransactionCreate,
   TransactionPatch,
+  TransactionSplitCreate,
+  TransactionSplitPayload,
   Transfer,
   TransferCreate,
   TransferPatch,
@@ -89,6 +92,21 @@ export const api = {
     request<Transaction>(`/api/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteTransaction: (id: number) =>
     request<void>(`/api/transactions/${id}`, { method: 'DELETE' }),
+
+  // Transaction splits + omnibox quick-add
+  splitTransaction: (id: number, payload: TransactionSplitPayload) =>
+    request<Transaction[]>(`/api/transactions/${id}/split`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  createSplitTransaction: (payload: TransactionSplitCreate) =>
+    request<Transaction[]>('/api/transactions/splits', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  deleteSplitGroup: (groupId: number) =>
+    request<void>(`/api/transactions/splits/${groupId}`, { method: 'DELETE' }),
+  listPayees: () => request<PayeeSuggestion[]>('/api/transactions/payees'),
 
   // E3: Transfers
   createTransfer: (data: TransferCreate) =>

@@ -8,6 +8,8 @@ import type {
   SignupPayload,
   TransactionCreate,
   TransactionPatch,
+  TransactionSplitCreate,
+  TransactionSplitPayload,
   TransferCreate,
   TransferPatch,
 } from './types'
@@ -145,6 +147,15 @@ export function useCategories() {
   return useQuery({ queryKey: ['categories'], queryFn: api.listCategories })
 }
 
+export function useCreateCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { group_id: number; name: string; sort_order?: number }) =>
+      api.createCategory(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
+  })
+}
+
 // ---------------------------------------------------------------------------
 // E3: Transactions
 // ---------------------------------------------------------------------------
@@ -183,6 +194,59 @@ export function useDeleteTransaction() {
       qc.invalidateQueries({ queryKey: ['accounts'] })
       qc.invalidateQueries({ queryKey: ['reports'] })
     },
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Transaction splits + omnibox quick-add
+// ---------------------------------------------------------------------------
+
+export function useSplitTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: TransactionSplitPayload }) =>
+      api.splitTransaction(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ledger'] })
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
+      qc.invalidateQueries({ queryKey: ['payees'] })
+    },
+  })
+}
+
+export function useCreateSplitTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: TransactionSplitCreate) => api.createSplitTransaction(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ledger'] })
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
+      qc.invalidateQueries({ queryKey: ['payees'] })
+    },
+  })
+}
+
+export function useDeleteSplitGroup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (groupId: number) => api.deleteSplitGroup(groupId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ledger'] })
+      qc.invalidateQueries({ queryKey: ['accounts'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
+      qc.invalidateQueries({ queryKey: ['payees'] })
+    },
+  })
+}
+
+/** Whole-list merchant history for autocomplete; filtered in memory by callers. */
+export function usePayees() {
+  return useQuery({
+    queryKey: ['payees'],
+    queryFn: api.listPayees,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

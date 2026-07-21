@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Ic } from '../components/Icon'
 import {
   useCategories,
+  useCreateCategory,
   useHousehold,
   useHouseholdInvites,
   useHouseholdMembers,
@@ -35,10 +36,7 @@ function CategoriesSection() {
     mutationFn: (data: { name: string; kind: 'expense' | 'income' }) => api.createGroup(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   })
-  const createCat = useMutation({
-    mutationFn: (data: { group_id: number; name: string }) => api.createCategory(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
-  })
+  const createCat = useCreateCategory()
   const patchCat = useMutation({
     mutationFn: ({ id, archived }: { id: number; archived: boolean }) => api.patchCategory(id, { archived }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),

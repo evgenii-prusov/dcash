@@ -99,7 +99,28 @@
     "invalidAmount": "Введите положительную сумму.",
     "selectAccountCategory": "Выберите счёт и категорию.",
     "sameAccount": "Счета отправителя и получателя должны различаться.",
-    "noAccountsYet": "Сначала создайте счёт."
+    "noAccountsYet": "Сначала создайте счёт.",
+    "omniboxPlaceholder": "Пятёрочка !60 #нал @продукты",
+    "omniboxHint": "! сумма · # счёт · @ категория · дата · // заметка · остальное = продавец",
+    "detailed": "Подробно",
+    "createCategoryIn": "Создать «{{name}}» в ▸",
+    "recentMerchants": "Последние продавцы",
+    "split": "Разделить",
+    "splitTitle": "Разделить {{amount}} по категориям",
+    "addLine": "Добавить строку",
+    "remaining": "Остаток",
+    "splitMustMatchTotal": "Сумма строк должна совпадать с общей суммой.",
+    "splitNeedsTwoLines": "Для разделения нужно минимум две строки.",
+    "splitBadge": "разделено",
+    "deleteSplit": "Удалить разделение",
+    "problems": {
+      "amountMissing": "Укажите сумму.",
+      "amountInvalid": "Сумма указана неверно.",
+      "categoryMissing": "Выберите категорию.",
+      "categoryNotFound": "Категория «{{query}}» не найдена.",
+      "accountNotFound": "Счёт «{{query}}» не найден.",
+      "totalMismatch": "Суммы по категориям не совпадают с общей суммой."
+    }
   },
   "settings": {
     "household": "Домохозяйство",

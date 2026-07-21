@@ -99,7 +99,28 @@
     "invalidAmount": "Enter a positive amount.",
     "selectAccountCategory": "Select account and category.",
     "sameAccount": "From and to accounts must differ.",
-    "noAccountsYet": "Create an account first."
+    "noAccountsYet": "Create an account first.",
+    "omniboxPlaceholder": "EDEKA !60 #cash @groceries",
+    "omniboxHint": "! amount · # account · @ category · date · // note · anything left = merchant",
+    "detailed": "Detailed",
+    "createCategoryIn": "Create \"{{name}}\" in ▸",
+    "recentMerchants": "Recent merchants",
+    "split": "Split",
+    "splitTitle": "Split {{amount}} into categories",
+    "addLine": "Add line",
+    "remaining": "Remaining",
+    "splitMustMatchTotal": "Split lines must add up to the total.",
+    "splitNeedsTwoLines": "A split needs at least two lines.",
+    "splitBadge": "split",
+    "deleteSplit": "Delete split",
+    "problems": {
+      "amountMissing": "Enter an amount.",
+      "amountInvalid": "Amount isn't valid.",
+      "categoryMissing": "Choose a category.",
+      "categoryNotFound": "No category matches \"{{query}}\".",
+      "accountNotFound": "No account matches \"{{query}}\".",
+      "totalMismatch": "Split amounts don't add up to the total."
+    }
   },
   "settings": {
     "household": "Household",

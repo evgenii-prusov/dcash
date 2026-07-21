@@ -68,7 +68,7 @@ session user's household (same ownership-check pattern as dtasks).
 | `accounts` | name, type `checking\|savings\|cash\|card\|deposit\|other`, currency, opening_balance_minor, archived, sort_order. Balance is derived: opening + Σ(transactions) ± Σ(transfers). Negative balances allowed (credit cards) |
 | `category_groups` | name, kind `expense\|income`, sort_order |
 | `categories` | group_id, name, archived, sort_order |
-| `transactions` | account_id, category_id, kind `expense\|income` (denormalized = group kind), amount_minor (>0), currency (copied from account), date, payee (nullable), note, created_by, recurring_rule_id (nullable), import_batch_id (nullable) |
+| `transactions` | account_id, category_id, kind `expense\|income` (denormalized = group kind), amount_minor (>0), currency (copied from account), date, payee (nullable), note, created_by, recurring_rule_id (nullable), import_batch_id (nullable), split_group_id (nullable — a split is N sibling rows sharing this id, equal to the first row's own id; not a parent row, not a child table; presentation metadata only, so balances, the category rollup, net worth and budgets stay unaffected) |
 | `transfers` | from_account_id, to_account_id, from_amount_minor, to_amount_minor, date, note, created_by, import_batch_id. Same-currency: amounts equal by default. Cross-currency: both real amounts entered → implied rate. A transfer fee is recorded as a separate expense transaction |
 | `rates` | date, currency, rate_to_eur (TEXT, parsed with `Decimal`), source `auto\|manual`; PK (date, currency) |
 | `budgets` | category_id, month (`YYYY-MM`), amount_minor — **always EUR**; unique (category_id, month) |
@@ -116,7 +116,7 @@ household as `member` instead of creating a new one).
 | Accounts | `GET/POST /api/accounts` · `PATCH /api/accounts/{id}` (rename, archive, opening balance, sort) |
 | Categories | `GET /api/categories` (groups nested) · `POST/PATCH /api/category-groups[/{id}]` · `POST/PATCH /api/categories[/{id}]` |
 | Ledger | `GET /api/ledger?month=&account_id=&category_id=&q=` — merged, date-sorted stream of transactions and transfers with a `type` discriminator; month-paged |
-| Transactions | `POST /api/transactions` · `PATCH/DELETE /api/transactions/{id}` |
+| Transactions | `POST /api/transactions` · `PATCH/DELETE /api/transactions/{id}` · `POST /api/transactions/{id}/split` (split an existing row into N category lines) · `POST /api/transactions/splits` (create an already-split entry from scratch) · `DELETE /api/transactions/splits/{id}` (delete a split group) · `GET /api/transactions/payees` (merchant history for autocomplete) |
 | Transfers | `POST /api/transfers` · `PATCH/DELETE /api/transfers/{id}` |
 | Rates | `GET /api/rates?date=` · `PUT /api/rates/{date}/{currency}` (manual override) · `POST /api/rates/refresh` |
 | Reports | `GET /api/reports/summary?month=` (income, expenses, net, per-account balances — native + EUR) · `GET /api/reports/categories?month=&kind=` (group→category rollup) · `GET /api/reports/net-worth?from=&to=` (monthly points, month-end rates) |
@@ -138,9 +138,18 @@ toggle, EN/RU language toggle (persisted, defaults to browser language).
   budget status strip, spending-by-category chart, net-worth trend line,
   recent entries.
 - **Transactions** — the ledger: month switcher, filters (account, category,
-  search), inline quick-add row (date defaults today, amount, category
-  picker, payee, note), edit in place; transfers rendered inline with a
-  distinct transfer style.
+  search), edit in place; transfers rendered inline with a distinct transfer
+  style. Quick-add is an omnibox — one text box parsed by sigil: `!` amount,
+  `#` account, `@` category, a bare date token, `//` note, leftover words =
+  merchant (sigils deliberately invert the sibling dtasks project's
+  convention, where `#` tags a project — an intentional owner choice, not a
+  bug to fix), falling back to a `⚙ detailed` pane with today's structured
+  fields, pre-filled from the parse. A purchase can be entered at the till
+  under one category, then split later into N category lines that must sum
+  to the original amount (or split inline from the omnibox in one line); the
+  ledger renders a split as a collapsible group — one header row, category
+  lines nested beneath. v1 is split-once: a saved split cannot be re-edited,
+  only deleted and re-entered.
 - **Accounts** — cards per account: native balance + EUR equivalent, type
   icon, quick "Transfer" action; add/edit/archive; opening balance.
 - **Budgets** — month grid: per category limit vs spent (progress bar,

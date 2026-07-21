@@ -128,6 +128,10 @@ class Transaction(Base):
     date: Mapped[date]
     payee: Mapped[str | None] = mapped_column(String(200))
     note: Mapped[str | None] = mapped_column(String(500))
+    # Set on every row produced by a split; equals the id of the first row in the
+    # group. NULL for ordinary transactions. Presentation metadata only —
+    # aggregations never filter on it.
+    split_group_id: Mapped[int | None] = mapped_column(index=True, default=None)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 

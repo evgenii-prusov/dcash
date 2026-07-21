@@ -122,6 +122,7 @@ async def get_ledger(
                 date=tx.date,
                 payee=tx.payee,
                 note=tx.note,
+                split_group_id=tx.split_group_id,
                 created_at=tx.created_at,
             )
         )

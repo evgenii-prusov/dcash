@@ -435,3 +435,348 @@ async def test_ledger_account_filter(client: AsyncTestClient) -> None:
 async def test_ledger_invalid_month(client: AsyncTestClient) -> None:
     resp = await client.get("/api/ledger", params={"month": "not-a-month"})
     assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Transaction splits
+# ---------------------------------------------------------------------------
+
+
+async def get_expense_category_ids(client: AsyncTestClient, n: int) -> list[int]:
+    """Return n distinct expense category ids (seeded households have plenty)."""
+    resp = await client.get("/api/categories")
+    ids: list[int] = []
+    for g in resp.json():
+        if g["kind"] == "expense":
+            for c in g["categories"]:
+                ids.append(c["id"])
+                if len(ids) == n:
+                    return ids
+    pytest.fail(f"Not enough expense categories (found {len(ids)}, need {n})")
+
+
+async def get_account_balance(client: AsyncTestClient, account_id: int, month: str) -> int:
+    resp = await client.get("/api/reports/summary", params={"month": month})
+    assert resp.status_code == 200, resp.text
+    account = next(a for a in resp.json()["accounts"] if a["id"] == account_id)
+    return account["balance_minor"]
+
+
+async def test_split_existing_transaction_happy_path(client: AsyncTestClient) -> None:
+    acct = await make_account(client, opening_balance_minor=1000_00)
+    cat = await get_first_expense_category(client)
+    tx = await make_transaction(client, acct["id"], cat["category_id"], amount_minor=6000, date="2026-07-10")
+    balance_before = await get_account_balance(client, acct["id"], "2026-07")
+
+    cat_a, cat_b, cat_c = await get_expense_category_ids(client, 3)
+    resp = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 3800},
+                {"category_id": cat_b, "amount_minor": 1250},
+                {"category_id": cat_c, "amount_minor": 950},
+            ]
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    rows = resp.json()
+    assert len(rows) == 3
+    assert {r["split_group_id"] for r in rows} == {tx["id"]}
+    assert sum(r["amount_minor"] for r in rows) == 6000
+    # Line 1 reuses the original row.
+    assert any(r["id"] == tx["id"] for r in rows)
+
+    balance_after = await get_account_balance(client, acct["id"], "2026-07")
+    assert balance_after == balance_before
+
+
+async def test_split_attributes_to_all_categories_in_report(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat = await get_first_expense_category(client)
+    tx = await make_transaction(client, acct["id"], cat["category_id"], amount_minor=6000, date="2026-07-10")
+    cat_a, cat_b, cat_c = await get_expense_category_ids(client, 3)
+    resp = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 3800},
+                {"category_id": cat_b, "amount_minor": 1250},
+                {"category_id": cat_c, "amount_minor": 950},
+            ]
+        },
+    )
+    assert resp.status_code == 201, resp.text
+
+    report_resp = await client.get("/api/reports/categories", params={"month": "2026-07", "kind": "expense"})
+    assert report_resp.status_code == 200
+    totals: dict[int, int] = {}
+    for group in report_resp.json()["groups"]:
+        for c in group["categories"]:
+            totals[c["category_id"]] = totals.get(c["category_id"], 0) + c["total_eur_minor"]
+    assert totals.get(cat_a) == 3800
+    assert totals.get(cat_b) == 1250
+    assert totals.get(cat_c) == 950
+
+
+async def test_split_rejects_sum_mismatch(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat = await get_first_expense_category(client)
+    tx = await make_transaction(client, acct["id"], cat["category_id"], amount_minor=6000)
+    cat_a, cat_b = await get_expense_category_ids(client, 2)
+    resp = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 3000},
+                {"category_id": cat_b, "amount_minor": 2000},
+            ]
+        },
+    )
+    assert resp.status_code == 400
+
+
+async def test_split_rejects_zero_amount_line(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat = await get_first_expense_category(client)
+    tx = await make_transaction(client, acct["id"], cat["category_id"], amount_minor=6000)
+    cat_a, cat_b = await get_expense_category_ids(client, 2)
+    resp = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 6000},
+                {"category_id": cat_b, "amount_minor": 0},
+            ]
+        },
+    )
+    assert resp.status_code == 400
+
+
+async def test_split_rejects_negative_amount_line(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat = await get_first_expense_category(client)
+    tx = await make_transaction(client, acct["id"], cat["category_id"], amount_minor=6000)
+    cat_a, cat_b = await get_expense_category_ids(client, 2)
+    resp = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 7000},
+                {"category_id": cat_b, "amount_minor": -1000},
+            ]
+        },
+    )
+    assert resp.status_code == 400
+
+
+async def test_split_rejects_single_line(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat = await get_first_expense_category(client)
+    tx = await make_transaction(client, acct["id"], cat["category_id"], amount_minor=6000)
+    resp = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={"lines": [{"category_id": cat["category_id"], "amount_minor": 6000}]},
+    )
+    assert resp.status_code == 400
+
+
+async def test_split_rejects_mixed_kind_categories(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    expense_cat = await get_first_expense_category(client)
+    income_cat = await get_first_income_category(client)
+    tx = await make_transaction(client, acct["id"], expense_cat["category_id"], amount_minor=6000)
+    resp = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={
+            "lines": [
+                {"category_id": expense_cat["category_id"], "amount_minor": 3000},
+                {"category_id": income_cat["category_id"], "amount_minor": 3000},
+            ]
+        },
+    )
+    assert resp.status_code == 400
+
+
+async def test_split_rejects_kind_mismatch_with_transaction(client: AsyncTestClient) -> None:
+    """Lines are internally consistent (all income) but disagree with the expense tx being split."""
+    acct = await make_account(client)
+    expense_cat = await get_first_expense_category(client)
+    tx = await make_transaction(client, acct["id"], expense_cat["category_id"], amount_minor=6000)
+
+    groups = (await client.get("/api/categories")).json()
+    income_groups = [g for g in groups if g["kind"] == "income"]
+    assert len(income_groups) >= 2, "seed data must provide at least 2 income groups for this test"
+    cat1 = await client.post("/api/categories", json={"group_id": income_groups[0]["id"], "name": "Income A"})
+    cat2 = await client.post("/api/categories", json={"group_id": income_groups[1]["id"], "name": "Income B"})
+    assert cat1.status_code == 201 and cat2.status_code == 201
+
+    resp = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat1.json()["id"], "amount_minor": 3000},
+                {"category_id": cat2.json()["id"], "amount_minor": 3000},
+            ]
+        },
+    )
+    assert resp.status_code == 400
+
+
+async def test_split_rejects_already_split_row(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat = await get_first_expense_category(client)
+    tx = await make_transaction(client, acct["id"], cat["category_id"], amount_minor=6000)
+    cat_a, cat_b = await get_expense_category_ids(client, 2)
+    first_split = await client.post(
+        f"/api/transactions/{tx['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 3000},
+                {"category_id": cat_b, "amount_minor": 3000},
+            ]
+        },
+    )
+    assert first_split.status_code == 201
+    already_split_row = first_split.json()[0]
+
+    resp = await client.post(
+        f"/api/transactions/{already_split_row['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 1500},
+                {"category_id": cat_b, "amount_minor": 1500},
+            ]
+        },
+    )
+    assert resp.status_code == 400
+
+
+async def test_split_idor_other_household_transaction(make_client: MakeClient) -> None:
+    owner_a = await make_client("a@example.com")
+    owner_b = await make_client("b@example.com")
+    acct_a = await make_account(owner_a)
+    cat_a = await get_first_expense_category(owner_a)
+    tx_a = await make_transaction(owner_a, acct_a["id"], cat_a["category_id"], amount_minor=6000)
+    cat_b1, cat_b2 = await get_expense_category_ids(owner_b, 2)
+
+    resp = await owner_b.post(
+        f"/api/transactions/{tx_a['id']}/split",
+        json={
+            "lines": [
+                {"category_id": cat_b1, "amount_minor": 3000},
+                {"category_id": cat_b2, "amount_minor": 3000},
+            ]
+        },
+    )
+    assert resp.status_code == 404
+
+
+async def test_create_split_transaction_from_scratch(client: AsyncTestClient) -> None:
+    acct = await make_account(client, opening_balance_minor=1000_00)
+    balance_before = await get_account_balance(client, acct["id"], "2026-07")
+    cat_a, cat_b, cat_c = await get_expense_category_ids(client, 3)
+
+    resp = await client.post(
+        "/api/transactions/splits",
+        json={
+            "account_id": acct["id"],
+            "date": "2026-07-10",
+            "payee": "EDEKA",
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 3800},
+                {"category_id": cat_b, "amount_minor": 1250},
+                {"category_id": cat_c, "amount_minor": 950},
+            ],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    rows = resp.json()
+    assert len(rows) == 3
+    group_ids = {r["split_group_id"] for r in rows}
+    assert len(group_ids) == 1
+    assert all(r["payee"] == "EDEKA" for r in rows)
+    assert sum(r["amount_minor"] for r in rows) == 6000
+
+    balance_after = await get_account_balance(client, acct["id"], "2026-07")
+    assert balance_after == balance_before - 6000
+
+
+async def test_create_split_transaction_idor_account(make_client: MakeClient) -> None:
+    owner_a = await make_client("a@example.com")
+    owner_b = await make_client("b@example.com")
+    acct_a = await make_account(owner_a)
+    cat_b1, cat_b2 = await get_expense_category_ids(owner_b, 2)
+
+    resp = await owner_b.post(
+        "/api/transactions/splits",
+        json={
+            "account_id": acct_a["id"],  # B trying to post to A's account
+            "date": "2026-07-10",
+            "lines": [
+                {"category_id": cat_b1, "amount_minor": 3000},
+                {"category_id": cat_b2, "amount_minor": 3000},
+            ],
+        },
+    )
+    assert resp.status_code == 404
+
+
+async def test_delete_split_group_restores_balance(client: AsyncTestClient) -> None:
+    acct = await make_account(client, opening_balance_minor=1000_00)
+    balance_before = await get_account_balance(client, acct["id"], "2026-07")
+    cat_a, cat_b = await get_expense_category_ids(client, 2)
+
+    resp = await client.post(
+        "/api/transactions/splits",
+        json={
+            "account_id": acct["id"],
+            "date": "2026-07-10",
+            "lines": [
+                {"category_id": cat_a, "amount_minor": 3000},
+                {"category_id": cat_b, "amount_minor": 3000},
+            ],
+        },
+    )
+    assert resp.status_code == 201
+    rows = resp.json()
+    group_id = rows[0]["split_group_id"]
+
+    del_resp = await client.delete(f"/api/transactions/splits/{group_id}")
+    assert del_resp.status_code == 204
+
+    balance_after = await get_account_balance(client, acct["id"], "2026-07")
+    assert balance_after == balance_before
+
+    ledger_resp = await client.get("/api/ledger", params={"month": "2026-07"})
+    remaining_ids = {e["id"] for e in ledger_resp.json() if e["type"] == "transaction"}
+    assert remaining_ids.isdisjoint({r["id"] for r in rows})
+
+
+async def test_delete_split_group_not_found(client: AsyncTestClient) -> None:
+    resp = await client.delete("/api/transactions/splits/999999")
+    assert resp.status_code == 404
+
+
+async def test_delete_split_group_idor(make_client: MakeClient) -> None:
+    owner_a = await make_client("a@example.com")
+    owner_b = await make_client("b@example.com")
+    acct_a = await make_account(owner_a)
+    cat_a1, cat_a2 = await get_expense_category_ids(owner_a, 2)
+
+    resp = await owner_a.post(
+        "/api/transactions/splits",
+        json={
+            "account_id": acct_a["id"],
+            "date": "2026-07-10",
+            "lines": [
+                {"category_id": cat_a1, "amount_minor": 3000},
+                {"category_id": cat_a2, "amount_minor": 3000},
+            ],
+        },
+    )
+    assert resp.status_code == 201
+    group_id = resp.json()[0]["split_group_id"]
+
+    del_resp = await owner_b.delete(f"/api/transactions/splits/{group_id}")
+    assert del_resp.status_code == 404

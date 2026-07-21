@@ -780,3 +780,75 @@ async def test_delete_split_group_idor(make_client: MakeClient) -> None:
 
     del_resp = await owner_b.delete(f"/api/transactions/splits/{group_id}")
     assert del_resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Payee suggestions
+# ---------------------------------------------------------------------------
+
+
+async def test_payees_ranks_more_frequent_merchant_first(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat = await get_first_expense_category(client)
+    await make_transaction(client, acct["id"], cat["category_id"], payee="EDEKA", date="2026-07-01")
+    await make_transaction(client, acct["id"], cat["category_id"], payee="EDEKA", date="2026-07-05")
+    await make_transaction(client, acct["id"], cat["category_id"], payee="REWE", date="2026-07-03")
+
+    resp = await client.get("/api/transactions/payees")
+    assert resp.status_code == 200
+    payees = resp.json()
+    names = [p["name"] for p in payees]
+    assert names.index("EDEKA") < names.index("REWE")
+
+    edeka = next(p for p in payees if p["name"] == "EDEKA")
+    assert edeka["count"] == 2
+    assert edeka["last_used"] == "2026-07-05"
+
+    rewe = next(p for p in payees if p["name"] == "REWE")
+    assert rewe["count"] == 1
+
+
+async def test_payees_top_category_id_is_most_used(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat_a, cat_b = await get_expense_category_ids(client, 2)
+    await make_transaction(client, acct["id"], cat_a, payee="EDEKA", date="2026-07-01")
+    await make_transaction(client, acct["id"], cat_a, payee="EDEKA", date="2026-07-02")
+    await make_transaction(client, acct["id"], cat_b, payee="EDEKA", date="2026-07-03")
+
+    resp = await client.get("/api/transactions/payees")
+    assert resp.status_code == 200
+    edeka = next(p for p in resp.json() if p["name"] == "EDEKA")
+    assert edeka["count"] == 3
+    assert edeka["top_category_id"] == cat_a
+
+
+async def test_payees_excludes_null_and_empty(client: AsyncTestClient) -> None:
+    acct = await make_account(client)
+    cat = await get_first_expense_category(client)
+    await make_transaction(client, acct["id"], cat["category_id"], date="2026-07-01")  # payee is None
+    await make_transaction(client, acct["id"], cat["category_id"], payee="", date="2026-07-02")
+    await make_transaction(client, acct["id"], cat["category_id"], payee="EDEKA", date="2026-07-03")
+
+    resp = await client.get("/api/transactions/payees")
+    assert resp.status_code == 200
+    names = [p["name"] for p in resp.json()]
+    assert names == ["EDEKA"]
+
+
+async def test_payees_never_leaks_other_household_merchants(make_client: MakeClient) -> None:
+    owner_a = await make_client("a@example.com")
+    owner_b = await make_client("b@example.com")
+    acct_a = await make_account(owner_a)
+    cat_a = await get_first_expense_category(owner_a)
+    await make_transaction(
+        owner_a, acct_a["id"], cat_a["category_id"], payee="A-ONLY-MERCHANT", date="2026-07-01"
+    )
+
+    acct_b = await make_account(owner_b)
+    cat_b = await get_first_expense_category(owner_b)
+    await make_transaction(owner_b, acct_b["id"], cat_b["category_id"], payee="B-MERCHANT", date="2026-07-01")
+
+    resp = await owner_b.get("/api/transactions/payees")
+    assert resp.status_code == 200
+    names = [p["name"] for p in resp.json()]
+    assert names == ["B-MERCHANT"]

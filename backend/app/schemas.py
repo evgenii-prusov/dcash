@@ -190,6 +190,15 @@ class TransactionSplitCreate(msgspec.Struct):
     note: str | None = None
 
 
+class PayeeSuggestion(msgspec.Struct):
+    """One row of GET /payees — a household's merchant history for autocomplete."""
+
+    name: str
+    count: int
+    last_used: date
+    top_category_id: int | None
+
+
 # ---------------------------------------------------------------------------
 # E3: Transfers
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 from typing import Any
 
-from litestar import Request, Router, delete, patch, post
+from litestar import Request, Router, delete, get, patch, post
 from litestar.exceptions import NotFoundException, ValidationException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +10,7 @@ from .household import HouseholdCtx
 from .models import Account, Category, CategoryGroup, Transaction, User
 from .schemas import (
     UNSET,
+    PayeeSuggestion,
     TransactionCreate,
     TransactionOut,
     TransactionPatch,
@@ -17,6 +18,8 @@ from .schemas import (
     TransactionSplitLine,
     TransactionSplitPayload,
 )
+
+MAX_PAYEE_SUGGESTIONS = 500
 
 
 async def _tx_out(session: AsyncSession, tx: Transaction) -> TransactionOut:
@@ -346,6 +349,46 @@ async def delete_split_group(group_id: int, hh: HouseholdCtx, session: AsyncSess
     await session.commit()
 
 
+@get("/payees")
+async def list_payees(hh: HouseholdCtx, session: AsyncSession) -> list[PayeeSuggestion]:
+    """Merchant history for omnibox autocomplete — household-scoped, whole list.
+
+    One scan over (payee, category_id, date), household-scoped like every other
+    query in this module. The client filters in memory, so this is deliberately
+    not a per-keystroke search endpoint.
+    """
+    rows = (
+        await session.execute(
+            select(Transaction.payee, Transaction.category_id, Transaction.date).where(
+                Transaction.household_id == hh.id,
+                Transaction.payee.is_not(None),
+                Transaction.payee != "",
+            )
+        )
+    ).all()
+
+    stats: dict[str, dict[str, Any]] = {}
+    for payee, category_id, tx_date in rows:
+        entry = stats.setdefault(payee, {"count": 0, "last_used": tx_date, "categories": {}})
+        entry["count"] += 1
+        if tx_date > entry["last_used"]:
+            entry["last_used"] = tx_date
+        cat_counts = entry["categories"]
+        cat_counts[category_id] = cat_counts.get(category_id, 0) + 1
+
+    suggestions = [
+        PayeeSuggestion(
+            name=payee,
+            count=data["count"],
+            last_used=data["last_used"],
+            top_category_id=max(data["categories"], key=lambda cid: data["categories"][cid]),
+        )
+        for payee, data in stats.items()
+    ]
+    suggestions.sort(key=lambda s: (s.count, s.last_used), reverse=True)
+    return suggestions[:MAX_PAYEE_SUGGESTIONS]
+
+
 transactions_router = Router(
     path="/api/transactions",
     route_handlers=[
@@ -355,5 +398,6 @@ transactions_router = Router(
         split_transaction,
         create_split_transaction,
         delete_split_group,
+        list_payees,
     ],
 )

@@ -1,14 +1,17 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Ic } from '../components/Icon'
+import { CategoryPicker } from '../components/CategoryPicker'
 import {
   useAccounts,
   useCategories,
   useCreateTransaction,
   useCreateTransfer,
+  useDeleteSplitGroup,
   useDeleteTransaction,
   useDeleteTransfer,
   useLedger,
+  useSplitTransaction,
 } from '../api/hooks'
 import type { CategoryGroup, LedgerEntry, Transaction, Transfer } from '../api/types'
 
@@ -26,6 +29,14 @@ function formatMoney(minor: number, currency: string, locale: string): string {
   } catch {
     return `${(minor / 100).toFixed(2)} ${currency}`
   }
+}
+
+/** Parses a raw amount input into minor units, the file's existing
+ * `Math.round(parseFloat(x) * 100)` convention, guarded against NaN so a
+ * half-typed split line reads as 0 rather than poisoning sums. */
+function parseAmountMinor(raw: string): number {
+  const minor = Math.round(parseFloat(raw) * 100)
+  return Number.isNaN(minor) ? 0 : minor
 }
 
 function prevMonth(ym: string) {
@@ -52,17 +63,37 @@ function monthLabel(ym: string, locale: string) {
 // Transaction row
 // ---------------------------------------------------------------------------
 
+interface SplitLine {
+  id: number
+  categoryId: number | null
+  amountStr: string
+}
+
 function TxRow({
   entry,
   locale,
+  groups,
+  splitBadge,
   onDelete,
 }: {
   entry: LedgerEntry
   locale: string
+  /** Household's category groups — threaded down so the split editor's
+   * CategoryPicker lines share the same query as everywhere else. */
+  groups: CategoryGroup[]
+  /** Set when this row is a split child being rendered flat (a category or
+   * search filter could otherwise return a misleading partial group total —
+   * see the grouping logic in TransactionsView). */
+  splitBadge?: boolean
   onDelete: () => void
 }) {
   const { t } = useTranslation()
   const [confirm, setConfirm] = useState(false)
+  const [splitOpen, setSplitOpen] = useState(false)
+  const [lines, setLines] = useState<SplitLine[]>([])
+  const [splitError, setSplitError] = useState('')
+  const nextLineId = useRef(0)
+  const splitTx = useSplitTransaction()
 
   if (entry.type === 'transfer') {
     const tr = entry as { type: 'transfer' } & Transfer
@@ -115,47 +146,297 @@ function TxRow({
   const amountColor = isIncome ? 'text-income' : ''
   const amountSign = isIncome ? '+' : ''
 
+  function openSplit() {
+    nextLineId.current = 1
+    setLines([{ id: 0, categoryId: tx.category_id, amountStr: (tx.amount_minor / 100).toFixed(2) }])
+    setSplitError('')
+    setSplitOpen(true)
+  }
+
+  function addLine() {
+    setLines((prev) => {
+      const usedMinor = prev.reduce((sum, l) => sum + parseAmountMinor(l.amountStr), 0)
+      const remainingMinor = tx.amount_minor - usedMinor
+      const id = nextLineId.current++
+      return [...prev, { id, categoryId: null, amountStr: (remainingMinor / 100).toFixed(2) }]
+    })
+  }
+
+  function updateLine(id: number, patch: Partial<SplitLine>) {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+  }
+
+  function removeLine(id: number) {
+    setLines((prev) => prev.filter((l) => l.id !== id))
+  }
+
+  const usedMinor = lines.reduce((sum, l) => sum + parseAmountMinor(l.amountStr), 0)
+  const remainingMinor = tx.amount_minor - usedMinor
+  // Mirrors the server rule (backend/app/transactions.py: _validated_split_kind)
+  // rather than replacing it — this only spares the user a rejected round trip.
+  const canSave =
+    remainingMinor === 0 &&
+    lines.length >= 2 &&
+    lines.every((l) => l.categoryId != null && parseAmountMinor(l.amountStr) > 0)
+
+  function handleSave() {
+    setSplitError('')
+    splitTx.mutate(
+      {
+        id: tx.id,
+        payload: {
+          lines: lines.map((l) => ({
+            category_id: l.categoryId as number,
+            amount_minor: parseAmountMinor(l.amountStr),
+          })),
+        },
+      },
+      {
+        onSuccess: () => setSplitOpen(false),
+        onError: (err: unknown) => setSplitError(err instanceof Error ? err.message : t('common.genericError')),
+      },
+    )
+  }
+
   return (
-    <div className="txn-row">
-      <span className={`badge mt-0.5 shrink-0 ${isIncome ? 'b-inc' : 'b-exp'}`}>
-        {isIncome ? t('ledger.income') : t('ledger.expense')}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[13px] font-medium">{tx.category_name}</span>
-          <span className="text-[11px] text-text-3">{tx.group_name}</span>
-        </div>
-        {tx.payee && <div className="text-[11px] text-text-3">{tx.payee}</div>}
-        {tx.note && <div className="text-[11px] text-text-3">{tx.note}</div>}
-        <div className="text-[11px] text-text-3">{tx.account_name}</div>
-      </div>
-      <div className="flex flex-col items-end gap-1">
-        <span className={`tnum text-[13px] font-medium ${amountColor}`}>
-          {amountSign}
-          {formatMoney(tx.amount_minor, tx.currency, locale)}
+    <>
+      <div className="txn-row">
+        <span className={`badge mt-0.5 shrink-0 ${isIncome ? 'b-inc' : 'b-exp'}`}>
+          {isIncome ? t('ledger.income') : t('ledger.expense')}
         </span>
-        {tx.currency !== 'EUR' && (
-          <span className="tnum text-[11px] text-text-3 font-normal">
-            (~{amountSign}{formatMoney(tx.amount_eur_minor, 'EUR', locale)})
-          </span>
-        )}
-        <span className="text-[11px] text-text-3">{tx.date}</span>
-      </div>
-      {confirm ? (
-        <div className="flex gap-1">
-          <button className="btn btn-danger btn-s" onClick={onDelete}>
-            <Ic n="check" s={11} />
-          </button>
-          <button className="btn btn-g btn-s" onClick={() => setConfirm(false)}>
-            <Ic n="x" s={11} />
-          </button>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-medium">{tx.category_name}</span>
+            <span className="text-[11px] text-text-3">{tx.group_name}</span>
+            {splitBadge && <span className="badge b-low shrink-0">{t('ledger.splitBadge')}</span>}
+          </div>
+          {tx.payee && <div className="text-[11px] text-text-3">{tx.payee}</div>}
+          {tx.note && <div className="text-[11px] text-text-3">{tx.note}</div>}
+          <div className="text-[11px] text-text-3">{tx.account_name}</div>
         </div>
-      ) : (
-        <button className="btn btn-g btn-s" onClick={() => setConfirm(true)}>
-          <Ic n="trash" s={11} />
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <span className={`tnum text-[13px] font-medium ${amountColor}`}>
+            {amountSign}
+            {formatMoney(tx.amount_minor, tx.currency, locale)}
+          </span>
+          {tx.currency !== 'EUR' && (
+            <span className="tnum text-[11px] text-text-3 font-normal">
+              (~{amountSign}{formatMoney(tx.amount_eur_minor, 'EUR', locale)})
+            </span>
+          )}
+          <span className="text-[11px] text-text-3">{tx.date}</span>
+        </div>
+        {confirm ? (
+          <div className="flex gap-1">
+            <button className="btn btn-danger btn-s" onClick={onDelete}>
+              <Ic n="check" s={11} />
+            </button>
+            <button className="btn btn-g btn-s" onClick={() => setConfirm(false)}>
+              <Ic n="x" s={11} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-1">
+            {tx.split_group_id === null && (
+              <button
+                className={`btn btn-s ${splitOpen ? 'btn-p' : 'btn-g'}`}
+                onClick={() => (splitOpen ? setSplitOpen(false) : openSplit())}
+              >
+                {t('ledger.split')}
+              </button>
+            )}
+            <button className="btn btn-g btn-s" onClick={() => setConfirm(true)}>
+              <Ic n="trash" s={11} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {splitOpen && (
+        <div className="flex flex-col gap-2 border-b border-line bg-surface-2 px-4 py-3">
+          <div className="text-[12px] font-medium">
+            {t('ledger.splitTitle', { amount: formatMoney(tx.amount_minor, tx.currency, locale) })}
+          </div>
+          {lines.map((line) => (
+            <div key={line.id} className="flex items-center gap-2">
+              <CategoryPicker
+                groups={groups}
+                value={line.categoryId}
+                onSelect={(sel) => updateLine(line.id, { categoryId: sel.id })}
+                kindFilter={tx.kind}
+                className="flex-1"
+              />
+              <input
+                className="input tnum w-24"
+                type="number"
+                step="0.01"
+                value={line.amountStr}
+                onChange={(e) => updateLine(line.id, { amountStr: e.target.value })}
+              />
+              <button
+                type="button"
+                className="btn btn-g btn-s"
+                disabled={lines.length <= 1}
+                onClick={() => removeLine(line.id)}
+              >
+                <Ic n="x" s={11} />
+              </button>
+            </div>
+          ))}
+          <div className="flex items-center justify-between">
+            <button type="button" className="btn btn-g btn-s" onClick={addLine}>
+              <Ic n="plus" s={11} />
+              {t('ledger.addLine')}
+            </button>
+            <span
+              className="tnum text-[12px] font-medium"
+              style={remainingMinor !== 0 ? { color: 'var(--warn)' } : undefined}
+            >
+              {t('ledger.remaining')}: {formatMoney(remainingMinor, tx.currency, locale)}
+            </span>
+          </div>
+          {!canSave && (
+            <p className="text-[11px] text-text-3">
+              {lines.length < 2 ? t('ledger.splitNeedsTwoLines') : t('ledger.splitMustMatchTotal')}
+            </p>
+          )}
+          {splitError && <p className="text-[12px] text-warn">{splitError}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" className="btn btn-g btn-s" onClick={() => setSplitOpen(false)}>
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-p btn-s"
+              disabled={!canSave || splitTx.isPending}
+              onClick={handleSave}
+            >
+              {splitTx.isPending ? t('common.saving') : t('common.save')}
+            </button>
+          </div>
+        </div>
       )}
-    </div>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Split group row — one collapsible header for all siblings sharing a
+// split_group_id, plus their child lines when expanded.
+// ---------------------------------------------------------------------------
+
+function SplitGroupRow({
+  entries,
+  locale,
+  onDeleteGroup,
+}: {
+  entries: Transaction[]
+  locale: string
+  onDeleteGroup: () => void
+}) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+
+  // Sort key is (date, created_at) per the plan — siblings share a date, so
+  // this settles into insertion order (original line first).
+  const sorted = useMemo(
+    () => [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.created_at.localeCompare(b.created_at)),
+    [entries],
+  )
+  const first = sorted[0]
+  const totalMinor = sorted.reduce((sum, e) => sum + e.amount_minor, 0)
+  const totalEurMinor = sorted.reduce((sum, e) => sum + e.amount_eur_minor, 0)
+  const isIncome = first.kind === 'income'
+  const amountColor = isIncome ? 'text-income' : ''
+  const amountSign = isIncome ? '+' : ''
+  const label = first.payee || first.account_name
+
+  return (
+    <>
+      <div className="txn-row">
+        <button
+          type="button"
+          className="btn btn-g btn-s mt-0.5 shrink-0"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+        >
+          <span
+            style={{
+              display: 'inline-flex',
+              transform: expanded ? 'rotate(90deg)' : 'none',
+              transition: 'transform 0.12s',
+            }}
+          >
+            <Ic n="chevron-right" s={11} />
+          </span>
+        </button>
+        <span className={`badge mt-0.5 shrink-0 ${isIncome ? 'b-inc' : 'b-exp'}`}>
+          {isIncome ? t('ledger.income') : t('ledger.expense')}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-medium">{label}</span>
+            <span className="text-[11px] text-text-3">
+              {t('ledger.splitBadge')} · {sorted.length}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className={`tnum text-[13px] font-medium ${amountColor}`}>
+            {amountSign}
+            {formatMoney(totalMinor, first.currency, locale)}
+          </span>
+          {first.currency !== 'EUR' && (
+            <span className="tnum text-[11px] text-text-3 font-normal">
+              (~{amountSign}{formatMoney(totalEurMinor, 'EUR', locale)})
+            </span>
+          )}
+          <span className="text-[11px] text-text-3">{first.date}</span>
+        </div>
+        {confirm ? (
+          <div className="flex gap-1">
+            <button className="btn btn-danger btn-s" onClick={onDeleteGroup}>
+              <Ic n="check" s={11} />
+            </button>
+            <button className="btn btn-g btn-s" onClick={() => setConfirm(false)}>
+              <Ic n="x" s={11} />
+            </button>
+          </div>
+        ) : (
+          <button className="btn btn-g btn-s" title={t('ledger.deleteSplit')} onClick={() => setConfirm(true)}>
+            <Ic n="trash" s={11} />
+          </button>
+        )}
+      </div>
+      {expanded &&
+        sorted.map((tx) => (
+          <div key={tx.id} className="txn-row pl-10">
+            <span className={`badge mt-0.5 shrink-0 ${tx.kind === 'income' ? 'b-inc' : 'b-exp'}`}>
+              {tx.kind === 'income' ? t('ledger.income') : t('ledger.expense')}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-medium">{tx.category_name}</span>
+                <span className="text-[11px] text-text-3">{tx.group_name}</span>
+              </div>
+              {tx.note && <div className="text-[11px] text-text-3">{tx.note}</div>}
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <span className={`tnum text-[13px] font-medium ${tx.kind === 'income' ? 'text-income' : ''}`}>
+                {tx.kind === 'income' ? '+' : ''}
+                {formatMoney(tx.amount_minor, tx.currency, locale)}
+              </span>
+              {tx.currency !== 'EUR' && (
+                <span className="tnum text-[11px] text-text-3 font-normal">
+                  (~{tx.kind === 'income' ? '+' : ''}
+                  {formatMoney(tx.amount_eur_minor, 'EUR', locale)})
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+    </>
   )
 }
 
@@ -365,8 +646,54 @@ export function TransactionsView() {
   })
   const deleteTx = useDeleteTransaction()
   const deleteTransfer = useDeleteTransfer()
+  const deleteSplitGroup = useDeleteSplitGroup()
 
   const accountOptions = (accounts ?? []).filter((a) => !a.archived)
+
+  // A category or search filter can return only part of a split group (a
+  // sibling's own category doesn't match, or its own note doesn't match the
+  // search text) — summing a partial group into one header would lie about
+  // the total, so those two filters force flat rendering with a badge
+  // instead. The account filter is safe: siblings always share account_id,
+  // so the whole group comes back together.
+  const forceFlatSplits = filterCategoryId !== undefined || q.trim() !== ''
+
+  // Fold the ledger into render nodes. Grouping is by split_group_id, never
+  // by row adjacency: a group node collects every entry sharing that id
+  // wherever it sits in the list, so correctness doesn't depend on siblings
+  // landing next to each other.
+  const renderNodes = useMemo(() => {
+    type RenderNode =
+      | { kind: 'entry'; entry: LedgerEntry }
+      | { kind: 'group'; groupId: number; entries: Transaction[] }
+
+    const list = entries ?? []
+    if (forceFlatSplits) {
+      return list.map((entry): RenderNode => ({ kind: 'entry', entry }))
+    }
+
+    const byGroup = new Map<number, Transaction[]>()
+    for (const entry of list) {
+      if (entry.type === 'transaction' && entry.split_group_id != null) {
+        const arr = byGroup.get(entry.split_group_id) ?? []
+        arr.push(entry)
+        byGroup.set(entry.split_group_id, arr)
+      }
+    }
+
+    const seenGroups = new Set<number>()
+    const nodes: RenderNode[] = []
+    for (const entry of list) {
+      if (entry.type === 'transaction' && entry.split_group_id != null) {
+        if (seenGroups.has(entry.split_group_id)) continue
+        seenGroups.add(entry.split_group_id)
+        nodes.push({ kind: 'group', groupId: entry.split_group_id, entries: byGroup.get(entry.split_group_id)! })
+      } else {
+        nodes.push({ kind: 'entry', entry })
+      }
+    }
+    return nodes
+  }, [entries, forceFlatSplits])
 
   return (
     <div>
@@ -481,17 +808,32 @@ export function TransactionsView() {
             <p>{t('ledger.empty')}</p>
           </div>
         )}
-        {(entries ?? []).map((entry) => (
-          <TxRow
-            key={`${entry.type}-${entry.id}`}
-            entry={entry}
-            locale={locale}
-            onDelete={() => {
-              if (entry.type === 'transaction') deleteTx.mutate(entry.id)
-              else deleteTransfer.mutate(entry.id)
-            }}
-          />
-        ))}
+        {renderNodes.map((node) => {
+          if (node.kind === 'group') {
+            return (
+              <SplitGroupRow
+                key={`split-${node.groupId}`}
+                entries={node.entries}
+                locale={locale}
+                onDeleteGroup={() => deleteSplitGroup.mutate(node.groupId)}
+              />
+            )
+          }
+          const entry = node.entry
+          return (
+            <TxRow
+              key={`${entry.type}-${entry.id}`}
+              entry={entry}
+              locale={locale}
+              groups={groups ?? []}
+              splitBadge={forceFlatSplits && entry.type === 'transaction' && entry.split_group_id != null}
+              onDelete={() => {
+                if (entry.type === 'transaction') deleteTx.mutate(entry.id)
+                else deleteTransfer.mutate(entry.id)
+              }}
+            />
+          )
+        })}
       </div>
     </div>
   )

@@ -106,15 +106,15 @@ function TxRow({
   if (entry.type === 'transfer') {
     const tr = entry as { type: 'transfer' } & Transfer
     return (
-      <div className="txn-row">
-        <span className="badge b-tfr mt-0.5 shrink-0">{t('ledger.transfer')}</span>
-        <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-medium" style={{ color: 'var(--transfer)' }}>
+      <div className="txn-row items-center">
+        <span className="badge b-tfr shrink-0">{t('ledger.transfer')}</span>
+        <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+          <span className="shrink-0 text-[13px] font-medium" style={{ color: 'var(--transfer)' }}>
             {tr.from_account_name} → {tr.to_account_name}
-          </div>
-          {tr.note && <div className="text-[11px] text-text-3">{tr.note}</div>}
+          </span>
+          {tr.note && <span className="truncate text-[11px] text-text-3">· {tr.note}</span>}
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex shrink-0 items-baseline gap-2">
           <span className="tnum text-[13px] font-medium" style={{ color: 'var(--transfer)' }}>
             {formatMoney(tr.from_amount_minor, tr.from_currency, locale)}
             {tr.from_currency !== tr.to_currency && (
@@ -129,7 +129,7 @@ function TxRow({
               )}
             </span>
           )}
-          <span className="text-[11px] text-text-3">{tr.date}</span>
+          <span className="tnum shrink-0 text-[11px] text-text-3">{tr.date}</span>
         </div>
         {confirm ? (
           <div className="flex gap-1">
@@ -243,21 +243,22 @@ function TxRow({
 
   return (
     <>
-      <div className="txn-row">
-        <span className={`badge mt-0.5 shrink-0 ${isIncome ? 'b-inc' : 'b-exp'}`}>
+      <div className="txn-row items-center">
+        <span className={`badge shrink-0 ${isIncome ? 'b-inc' : 'b-exp'}`}>
           {isIncome ? t('ledger.income') : t('ledger.expense')}
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[13px] font-medium">{tx.category_name}</span>
-            <span className="text-[11px] text-text-3">{tx.group_name}</span>
-            {splitBadge && <span className="badge b-low shrink-0">{t('ledger.splitBadge')}</span>}
-          </div>
-          {tx.payee && <div className="text-[11px] text-text-3">{tx.payee}</div>}
-          {tx.note && <div className="text-[11px] text-text-3">{tx.note}</div>}
-          <div className="text-[11px] text-text-3">{tx.account_name}</div>
+        <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+          <span className="shrink-0 text-[13px] font-medium">{tx.category_name}</span>
+          <span className="shrink-0 text-[11px] text-text-3">{tx.group_name}</span>
+          {splitBadge && <span className="badge b-low shrink-0">{t('ledger.splitBadge')}</span>}
+          {(tx.payee || tx.note) && (
+            <span className="truncate text-[11px] text-text-3">
+              · {[tx.payee, tx.note].filter(Boolean).join(' · ')}
+            </span>
+          )}
+          <span className="ml-auto shrink-0 pl-2 text-[11px] text-text-3">{tx.account_name}</span>
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex shrink-0 items-baseline gap-2">
           <span className={`tnum text-[13px] font-medium ${amountColor}`}>
             {amountSign}
             {formatMoney(tx.amount_minor, tx.currency, locale)}
@@ -267,7 +268,7 @@ function TxRow({
               (~{amountSign}{formatMoney(tx.amount_eur_minor, 'EUR', locale)})
             </span>
           )}
-          <span className="text-[11px] text-text-3">{tx.date}</span>
+          <span className="tnum shrink-0 text-[11px] text-text-3">{tx.date}</span>
         </div>
         {confirm ? (
           <div className="flex gap-1">
@@ -453,10 +454,10 @@ function SplitGroupRow({
 
   return (
     <>
-      <div className="txn-row">
+      <div className="txn-row items-center">
         <button
           type="button"
-          className="btn btn-g btn-s mt-0.5 shrink-0"
+          className="btn btn-g btn-s shrink-0"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
         >
@@ -470,18 +471,16 @@ function SplitGroupRow({
             <Ic n="chevron-right" s={11} />
           </span>
         </button>
-        <span className={`badge mt-0.5 shrink-0 ${isIncome ? 'b-inc' : 'b-exp'}`}>
+        <span className={`badge shrink-0 ${isIncome ? 'b-inc' : 'b-exp'}`}>
           {isIncome ? t('ledger.income') : t('ledger.expense')}
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[13px] font-medium">{label}</span>
-            <span className="text-[11px] text-text-3">
-              {t('ledger.splitBadge')} · {sorted.length}
-            </span>
-          </div>
+        <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+          <span className="truncate text-[13px] font-medium">{label}</span>
+          <span className="shrink-0 text-[11px] text-text-3">
+            {t('ledger.splitBadge')} · {sorted.length}
+          </span>
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex shrink-0 items-baseline gap-2">
           <span className={`tnum text-[13px] font-medium ${amountColor}`}>
             {amountSign}
             {formatMoney(totalMinor, first.currency, locale)}
@@ -491,7 +490,7 @@ function SplitGroupRow({
               (~{amountSign}{formatMoney(totalEurMinor, 'EUR', locale)})
             </span>
           )}
-          <span className="text-[11px] text-text-3">{first.date}</span>
+          <span className="tnum shrink-0 text-[11px] text-text-3">{first.date}</span>
         </div>
         {confirm ? (
           <div className="flex gap-1">
@@ -510,18 +509,16 @@ function SplitGroupRow({
       </div>
       {expanded &&
         sorted.map((tx) => (
-          <div key={tx.id} className="txn-row pl-10">
-            <span className={`badge mt-0.5 shrink-0 ${tx.kind === 'income' ? 'b-inc' : 'b-exp'}`}>
+          <div key={tx.id} className="txn-row items-center pl-10">
+            <span className={`badge shrink-0 ${tx.kind === 'income' ? 'b-inc' : 'b-exp'}`}>
               {tx.kind === 'income' ? t('ledger.income') : t('ledger.expense')}
             </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[13px] font-medium">{tx.category_name}</span>
-                <span className="text-[11px] text-text-3">{tx.group_name}</span>
-              </div>
-              {tx.note && <div className="text-[11px] text-text-3">{tx.note}</div>}
+            <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+              <span className="shrink-0 text-[13px] font-medium">{tx.category_name}</span>
+              <span className="shrink-0 text-[11px] text-text-3">{tx.group_name}</span>
+              {tx.note && <span className="truncate text-[11px] text-text-3">· {tx.note}</span>}
             </div>
-            <div className="flex flex-col items-end gap-1">
+            <div className="flex shrink-0 items-baseline gap-2">
               <span className={`tnum text-[13px] font-medium ${tx.kind === 'income' ? 'text-income' : ''}`}>
                 {tx.kind === 'income' ? '+' : ''}
                 {formatMoney(tx.amount_minor, tx.currency, locale)}

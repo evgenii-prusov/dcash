@@ -253,7 +253,7 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 9px 14px;
+    padding: 5px 14px;
     transition: background 0.1s;
     cursor: default;
     border-bottom: 1px solid var(--border);

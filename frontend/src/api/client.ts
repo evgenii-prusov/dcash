@@ -82,7 +82,7 @@ export const api = {
     request<CategoryGroup>('/api/categories/groups', { method: 'POST', body: JSON.stringify(data) }),
   createCategory: (data: { group_id: number; name: string; sort_order?: number }) =>
     request<Category>('/api/categories/', { method: 'POST', body: JSON.stringify(data) }),
-  patchCategory: (id: number, data: { name?: string; archived?: boolean; sort_order?: number }) =>
+  patchCategory: (id: number, data: { name?: string; archived?: boolean; sort_order?: number; group_id?: number }) =>
     request<Category>(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // E3: Transactions

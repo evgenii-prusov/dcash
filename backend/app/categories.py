@@ -155,6 +155,17 @@ async def patch_category(
         cat.archived = data.archived  # type: ignore[assignment]
     if data.sort_order is not UNSET:
         cat.sort_order = data.sort_order  # type: ignore[assignment]
+    if data.group_id is not UNSET:
+        target_group = (
+            await session.execute(
+                select(CategoryGroup).where(
+                    CategoryGroup.id == data.group_id, CategoryGroup.household_id == hh.id
+                )
+            )
+        ).scalar_one_or_none()
+        if target_group is None:
+            raise NotFoundException("Category group not found")
+        cat.group_id = data.group_id  # type: ignore[assignment]
     await session.commit()
     return _cat_out(cat)
 

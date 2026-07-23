@@ -95,6 +95,7 @@ class CategoryPatch(msgspec.Struct):
     name: str | msgspec.UnsetType = msgspec.UNSET
     archived: bool | msgspec.UnsetType = msgspec.UNSET
     sort_order: int | msgspec.UnsetType = msgspec.UNSET
+    group_id: int | msgspec.UnsetType = msgspec.UNSET
 
 
 class CategoryOut(msgspec.Struct):

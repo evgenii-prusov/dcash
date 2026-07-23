@@ -22,6 +22,8 @@ import type { CategoryGroup } from '../api/types'
 // Categories editor
 // ---------------------------------------------------------------------------
 
+type EditingCat = { id: number; name: string; groupId: number }
+
 function CategoriesSection() {
   const { t } = useTranslation()
   const { data: groups, isLoading } = useCategories()
@@ -31,6 +33,7 @@ function CategoriesSection() {
   const [addingGroup, setAddingGroup] = useState(false)
   const [newCatNames, setNewCatNames] = useState<Record<number, string>>({})
   const [addingCat, setAddingCat] = useState<Record<number, boolean>>({})
+  const [editingCat, setEditingCat] = useState<EditingCat | null>(null)
 
   const createGroup = useMutation({
     mutationFn: (data: { name: string; kind: 'expense' | 'income' }) => api.createGroup(data),
@@ -38,7 +41,8 @@ function CategoriesSection() {
   })
   const createCat = useCreateCategory()
   const patchCat = useMutation({
-    mutationFn: ({ id, archived }: { id: number; archived: boolean }) => api.patchCategory(id, { archived }),
+    mutationFn: ({ id, ...data }: { id: number; archived?: boolean; name?: string; group_id?: number }) =>
+      api.patchCategory(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   })
 
@@ -58,8 +62,17 @@ function CategoriesSection() {
     setAddingCat((prev) => ({ ...prev, [groupId]: false }))
   }
 
-  function handleArchiveCat(id: number, archived: boolean) {
-    patchCat.mutate({ id, archived })
+  async function handleSaveEdit() {
+    if (!editingCat) return
+    const patch: { name?: string; group_id?: number } = {}
+    const originalCat = groups?.flatMap((g) => g.categories).find((c) => c.id === editingCat.id)
+    const originalGroup = groups?.find((g) => g.categories.some((c) => c.id === editingCat.id))
+    if (editingCat.name.trim() !== originalCat?.name) patch.name = editingCat.name.trim()
+    if (editingCat.groupId !== originalGroup?.id) patch.group_id = editingCat.groupId
+    if (Object.keys(patch).length > 0) {
+      await patchCat.mutateAsync({ id: editingCat.id, ...patch })
+    }
+    setEditingCat(null)
   }
 
   if (isLoading) return <p className="text-[13px] text-text-3">{t('common.loading')}</p>
@@ -129,18 +142,51 @@ function CategoriesSection() {
           )}
 
           <div className="pl-8">
-            {g.categories.map((c) => (
-              <div key={c.id} className={`flex items-center justify-between py-1 pr-4 text-[13px] ${c.archived ? 'opacity-40' : ''}`}>
-                <span>{c.name}</span>
-                <button
-                  className="btn btn-g btn-s"
-                  onClick={() => handleArchiveCat(c.id, !c.archived)}
-                  title={c.archived ? t('accounts.unarchive') : t('accounts.archive')}
-                >
-                  {c.archived ? '↩' : '📦'}
-                </button>
-              </div>
-            ))}
+            {g.categories.map((c) => {
+              const isEditing = editingCat?.id === c.id
+              return (
+                <div key={c.id} className={`border-b border-line last:border-0 ${c.archived ? 'opacity-40' : ''}`}>
+                  {isEditing ? (
+                    <div className="flex gap-2 py-2 pr-4">
+                      <input
+                        className="input flex-1 text-[12px]"
+                        value={editingCat.name}
+                        onChange={(e) => setEditingCat((prev) => prev && { ...prev, name: e.target.value })}
+                        autoFocus
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditingCat(null) }}
+                      />
+                      <select
+                        className="sel text-[12px]"
+                        value={editingCat.groupId}
+                        onChange={(e) => setEditingCat((prev) => prev && { ...prev, groupId: Number(e.target.value) })}
+                      >
+                        {(groups ?? []).map((grp) => (
+                          <option key={grp.id} value={grp.id}>{grp.name}</option>
+                        ))}
+                      </select>
+                      <button className="btn btn-p btn-s" onClick={handleSaveEdit}>{t('common.save')}</button>
+                      <button className="btn btn-g btn-s" onClick={() => setEditingCat(null)}><Ic n="x" s={12} /></button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between py-1.5 pr-4 text-[13px]">
+                      <button
+                        className="text-left hover:text-text-1 transition-colors"
+                        onClick={() => setEditingCat({ id: c.id, name: c.name, groupId: g.id })}
+                      >
+                        {c.name}
+                      </button>
+                      <button
+                        className="btn btn-g btn-s"
+                        onClick={() => patchCat.mutate({ id: c.id, archived: !c.archived })}
+                        title={c.archived ? t('accounts.unarchive') : t('accounts.archive')}
+                      >
+                        {c.archived ? '↩' : '📦'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       ))}
